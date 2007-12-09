@@ -85,9 +85,7 @@ task :publish do
 end
 
 desc "Remove built files"
-task :clean do
-  rm_rf 'pkg'
-end
+task :clean => [:clobber_package, :clobber_rdoc]
 
 # ---------  RDoc Documentation ------
 desc "Generate rdoc documentation"
