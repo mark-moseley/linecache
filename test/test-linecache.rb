@@ -2,7 +2,7 @@
 require "test/unit"
 
 # Test of C extension ruby_debug.so
-class TestRubyDebug < Test::Unit::TestCase
+class TestLineCache < Test::Unit::TestCase
   @@TOP_SRC_DIR = File.join(File.expand_path(File.dirname(__FILE__)), 
                             '..', 'lib')
   require File.join(@@TOP_SRC_DIR, 'linecache.rb')
