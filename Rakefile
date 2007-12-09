@@ -72,7 +72,7 @@ end
   pkg.need_tar = true
 end
 
-task :default => [:package]
+task :default => [:test]
 
 desc "Publish linecache to RubyForge."
 task :publish do 

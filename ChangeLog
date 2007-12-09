@@ -1,3 +1,17 @@
+2007-12-09 13:41  rockyb
+
+	* ., Rakefile: . : ignore doc and pkg
+	  Rakefile: clean now does clobber_rdoc and clobber_package, i.e.
+	  removes
+	  the doc and pkg directories.
+
+2007-12-09 13:15  rockyb
+
+	* ChangeLog, NEWS, README, Rakefile, lib/linecache.rb,
+	  test/test-linecache.rb: NEWS, README, linecache.rb: Add $Id$ line
+	  test-linecache.rb: make executable
+	  Rakefile: Correct documentation
+
 2007-12-09 12:58  rockyb
 
 	* linecache, ., AUTHORS, COPYING, ChangeLog, NEWS, README,

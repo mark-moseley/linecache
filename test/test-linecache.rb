@@ -1,13 +1,14 @@
 #!/usr/bin/env ruby
 require "test/unit"
+require "fileutils"
+require "tempfile"
 
-# Test of C extension ruby_debug.so
+# Test LineCache module
 class TestLineCache < Test::Unit::TestCase
   @@TOP_SRC_DIR = File.join(File.expand_path(File.dirname(__FILE__)), 
                             '..', 'lib')
   require File.join(@@TOP_SRC_DIR, 'linecache.rb')
   
-  # test current_context
   def test_basic
     fp = File.open(__FILE__, 'r')
     compare_lines = fp.readlines()
@@ -34,9 +35,25 @@ class TestLineCache < Test::Unit::TestCase
                    'Short filename lookup should work')
     end
 
-    ## FIXME: should do a better job testing update_cache.
-    ## write a temporary file read contents, rewrite it and check that
-    ## we get a change.
+    # Write a temporary file; read contents, rewrite it and check that
+    # we get a change when calling getline.
+    tf = Tempfile.new("testing")
+    test_string = "Now is the time.\n"
+    tf.puts(test_string)
+    tf.close
+    line = LineCache::getline(tf.path, 1)
+    assert_equal(test_string, line,
+                 "C'mon - a simple line test like this worked before.")
+    tf.open
+    test_string = "Now is another time.\n"
+    tf.puts(test_string)
+    tf.close
+    LineCache::checkcache
+    line = LineCache::getline(tf.path, 1)
+    assert_equal(test_string, line,
+                 "checkcache should have reread the temporary file.")
+    FileUtils.rm tf.path
+
     LineCache::update_cache(__FILE__)
     LineCache::clear_file_cache
   end

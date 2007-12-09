@@ -49,6 +49,9 @@
 # This code is derived from the Python module of the same name.
 #
 
+# require "rubygems"
+# require "ruby-debug" ; Debugger.start
+
 # = module LineCache
 # Module caching lines of a file
 module LineCache
@@ -99,8 +102,8 @@ module LineCache
 
   module_function :getlines
 
-  # Discard cache entries that are out of date. If the filename is +nil+
-  # all entries in the file cache are checked.
+  # Discard cache entries that are out of date. If +filename+ is +nil+
+  # all entries in the file cache +@@file_cache+ are checked.
   def checkcache(filename=nil)
     
     if !filename
@@ -113,7 +116,8 @@ module LineCache
 
     for filename in filenames
       next unless @@file_cache.member?(filename)
-      if File.exists?(cache_info.fullname)
+      fullname = @@file_cache[filename].fullname
+      if File.exists?(fullname)
         cache_info = @@file_cache[filename]
         stat = File.stat(fullname)
         if cache_info.size != stat.size or cache_info.mtime != stat.mtime
@@ -124,6 +128,8 @@ module LineCache
       end
     end
   end
+
+  module_function :checkcache
       
   # Update a cache entry and return its list of lines.  if something's
   # wrong, discard the cache entry, and return an empty list.
