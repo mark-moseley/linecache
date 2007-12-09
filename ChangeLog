@@ -1,0 +1,8 @@
+2007-12-09 12:58  rockyb
+
+	* linecache, ., AUTHORS, COPYING, ChangeLog, NEWS, README,
+	  Rakefile, VERSION, lib, lib/linecache.rb, test,
+	  test/test-linecache.rb: Initial import of LineCache, a module for
+	  reading and caching lines.
+	  This time to trunk.
+

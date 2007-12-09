@@ -45,8 +45,8 @@ default_spec = Gem::Specification.new do |spec|
   spec.homepage = "http://rubyforge.org/projects/rocky-hacks/linecache"
   spec.summary = "Read file with caching"
   spec.description = <<-EOF
-ruby-debug is a fast implementation of the standard Ruby debugger debug.rb.
-It is implemented by utilizing a new Ruby C API hook.
+LineCache is a module for reading and caching lines. This may be useful for
+example in a debugger where the same lines are shown many times.
 EOF
 
   spec.version = PACKAGE_VERSION
@@ -93,15 +93,11 @@ end
 desc "Generate rdoc documentation"
 Rake::RDocTask.new("rdoc") do |rdoc|
   rdoc.rdoc_dir = 'doc'
-  rdoc.title    = "ruby-debug"
+  rdoc.title    = "linecache"
   # Show source inline with line numbers
   rdoc.options << "--inline-source" << "--line-numbers"
   # Make the readme file the start page for the generated html
   rdoc.options << '--main' << 'README'
-  rdoc.rdoc_files.include('bin/**/*',
-                          'lib/**/*.rb',
-                          'ext/**/ruby_debug.c',
-                          'README',
-                          'LICENSE')
+  rdoc.rdoc_files.include('lib/*.rb', 'README', 'COPYING')
 end
 
