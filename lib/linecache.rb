@@ -117,7 +117,7 @@ module LineCache
     for filename in filenames
       next unless @@file_cache.member?(filename)
       fullname = @@file_cache[filename].fullname
-      if File.exists?(fullname)
+      if File.exist?(fullname)
         cache_info = @@file_cache[filename]
         stat = File.stat(fullname)
         if cache_info.size != stat.size or cache_info.mtime != stat.mtime
@@ -141,7 +141,7 @@ module LineCache
       
     fullname = File.expand_path(filename)
 
-    if File.exists?(fullname)
+    if File.exist?(fullname)
       stat = File.stat(fullname)
     else
       basename = File.basename(filename)
@@ -150,7 +150,7 @@ module LineCache
       stat = nil
       for dirname in $:
         fullname = File.join(dirname, basename)
-        if File.exists?(fullname)
+        if File.exist?(fullname)
             stat = File.stat(fullname)
             break
         end
@@ -180,6 +180,7 @@ if __FILE__ == $0 or
   lines = LineCache::getlines(__FILE__)
   line = LineCache::getline(__FILE__, 6)
   LineCache::update_cache(__FILE__)
-  LineCache::clear_file_cache(__FILE__)
-  LineCache::clear_file_cache
+  LineCache::checkcache(__FILE__)
+  LineCache::checkcache # Check all files in the cache
+  LineCache::clear_file_cache 
 end
