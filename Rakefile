@@ -11,12 +11,13 @@ PACKAGE_VERSION = open(File.join(File.dirname(__FILE__), 'VERSION')) do
 end
 
 FILES = FileList[
-  'README',
-  'NEWS',
+  'AUTHORS',
   'COPYING',
   'ChangeLog',
+  'NEWS',
+  'README',
   'Rakefile',
-  'AUTHORS',
+  'VERSION',
   'lib/*.rb',
   'test/*.rb'
 ]                        
