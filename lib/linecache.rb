@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # $Id$
 # 
-#   Copyright (C) 2007 Rocky Bernstein <rockyb@rubyforge.net>
+#   Copyright (C) 2007, 2008 Rocky Bernstein <rockyb@rubyforge.net>
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -49,13 +49,15 @@
 # This code is derived from the Python module of the same name.
 #
 
+SCRIPT_LINES__ = {} unless defined? SCRIPT_LINES__
+
 # require "rubygems"
 # require "ruby-debug" ; Debugger.start
 
 # = module LineCache
 # Module caching lines of a file
 module LineCache
-  LineCacheInfo = Struct.new(:stat, :lines, :fullname) 
+  LineCacheInfo = Struct.new(:stat, :lines, :fullname)
  
   # Get line +lineno+ from file named +filename+. Return nil if there was
   # a problem. If a file named filename is not found, the function will
@@ -96,7 +98,7 @@ module LineCache
     if @@file_cache.member?(filename)
         return @@file_cache[filename].lines
     else
-        return update_cache(filename)
+        return update_cache(filename, true)
     end
   end
 
@@ -133,14 +135,29 @@ module LineCache
       
   # Update a cache entry and return its list of lines.  if something's
   # wrong, discard the cache entry, and return an empty list.
-  def update_cache(filename)
+  # If use_script_lines is true, try to get the 
+  def update_cache(filename, use_script_lines=false)
 
     return [] unless filename
 
     @@file_cache.delete(filename)
-      
     fullname = File.expand_path(filename)
-
+    
+    if use_script_lines
+      [filename, fullname].each do |name| 
+        if !SCRIPT_LINES__[name].nil? && SCRIPT_LINES__[name] != true
+          begin 
+            stat = File.stat(name)
+          rescue
+            stat = nil
+          end
+          lines = SCRIPT_LINES__[name].dup
+          @@file_cache[filename] = LineCacheInfo.new(stat, lines, fullname)
+          return lines
+        end
+      end
+    end
+      
     if File.exist?(fullname)
       stat = File.stat(fullname)
     else
@@ -176,7 +193,7 @@ end
 
 # example usage
 if __FILE__ == $0 or
-    ($DEBUG and ['rdebug', 'rcov'].include?(File.basename($0)))
+    ($DEBUG and ['rcov'].include?(File.basename($0)))
   lines = LineCache::getlines(__FILE__)
   line = LineCache::getline(__FILE__, 6)
   LineCache::update_cache(__FILE__)
