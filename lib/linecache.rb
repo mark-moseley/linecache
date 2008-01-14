@@ -59,9 +59,9 @@ SCRIPT_LINES__ = {} unless defined? SCRIPT_LINES__
 module LineCache
   LineCacheInfo = Struct.new(:stat, :lines, :fullname)
  
-  # Get line +lineno+ from file named +filename+. Return nil if there was
-  # a problem. If a file named filename is not found, the function will
-  # look for it in the $: path array.
+  # Get line +line_number+ from file named +filename+. Return nil if
+  # there was a problem. If a file named filename is not found, the
+  # function will look for it in the $: path array.
   # 
   # Examples:
   # 
@@ -72,10 +72,10 @@ module LineCache
   #     lines = LineCache::getlines ('myfile.rb')
   #  end
   #
-  def getline(filename, lineno)
-    lines = getlines(filename)
-    if (1..lines.size) === lineno
-        return lines[lineno-1]
+  def getline(filename, line_number, reload_on_change=true)
+    lines = getlines(filename, reload_on_change)
+    if (1..lines.size) === line_number
+        return lines[line_number-1]
     else
         return nil
     end
@@ -86,15 +86,20 @@ module LineCache
   @@file_cache = {} # the cache
 
   # Clear the file cache entirely.
-  def clear_file_cache()
+  def clear_file_cache(script_lines_too=false)
     @@file_cache = {}
+    SCRIPT_LINES__.keys.each do |filename|
+      next unless File.exists?(filename)
+      SCRIPT_LINES__[filename] = nil
+    end
   end
 
   module_function :clear_file_cache
 
   # Read lines of +filename+ and cache the results. However +filename+ was
   # previously cached use the results from the cache.
-  def getlines(filename)
+  def getlines(filename, reload_on_change=true)
+    checkcache(filename) if reload_on_change
     if @@file_cache.member?(filename)
         return @@file_cache[filename].lines
     else

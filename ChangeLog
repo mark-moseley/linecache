@@ -1,22 +1,53 @@
+2007-12-10 16:24  rockyb
+
+	* linecache/linecache: release 0.1
+
+2007-12-09 17:47  rockyb
+
+	* linecache/trunk/lib/linecache.rb: Make Ruby 1.9 compatible.
+
+2007-12-09 17:17  rockyb
+
+	* linecache/trunk/ChangeLog, linecache/trunk/Rakefile,
+	  linecache/trunk/lib/linecache.rb,
+	  linecache/trunk/test/test-linecache.rb: Better tests mean more
+	  bugs found. "rake" defaults now to "test".
+
+2007-12-09 14:10  rockyb
+
+	* linecache/trunk/Rakefile: Add VERSION to gem.
+
+2007-12-09 14:09  rockyb
+
+	* linecache/trunk/test/test-linecache.rb: Change classname to
+	  something more appropriate.
+
 2007-12-09 13:41  rockyb
 
-	* ., Rakefile: . : ignore doc and pkg
+	* linecache/trunk, linecache/trunk/Rakefile: . : ignore doc and pkg
 	  Rakefile: clean now does clobber_rdoc and clobber_package, i.e.
 	  removes
 	  the doc and pkg directories.
 
 2007-12-09 13:15  rockyb
 
-	* ChangeLog, NEWS, README, Rakefile, lib/linecache.rb,
-	  test/test-linecache.rb: NEWS, README, linecache.rb: Add $Id$ line
+	* linecache/trunk/ChangeLog, linecache/trunk/NEWS,
+	  linecache/trunk/README, linecache/trunk/Rakefile,
+	  linecache/trunk/lib/linecache.rb,
+	  linecache/trunk/test/test-linecache.rb: NEWS, README,
+	  linecache.rb: Add $Id$ line
 	  test-linecache.rb: make executable
 	  Rakefile: Correct documentation
 
 2007-12-09 12:58  rockyb
 
-	* linecache, ., AUTHORS, COPYING, ChangeLog, NEWS, README,
-	  Rakefile, VERSION, lib, lib/linecache.rb, test,
-	  test/test-linecache.rb: Initial import of LineCache, a module for
-	  reading and caching lines.
+	* linecache, linecache/trunk, linecache/trunk/AUTHORS,
+	  linecache/trunk/COPYING, linecache/trunk/ChangeLog,
+	  linecache/trunk/NEWS, linecache/trunk/README,
+	  linecache/trunk/Rakefile, linecache/trunk/VERSION,
+	  linecache/trunk/lib, linecache/trunk/lib/linecache.rb,
+	  linecache/trunk/test, linecache/trunk/test/test-linecache.rb:
+	  Initial import of LineCache, a module for reading and caching
+	  lines.
 	  This time to trunk.
 
