@@ -76,7 +76,6 @@ class TestLineCache < Test::Unit::TestCase
                  "stat for #{__FILE__} shouldn't be nil - just cleared cache.")
     line = LineCache::getline(__FILE__, 1)
     assert line
-    puts LineCache::sha1(__FILE__)
     assert(LineCache::stat(__FILE__),
            "file #{__FILE__} should now have a stat")
   end
