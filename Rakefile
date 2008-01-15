@@ -19,7 +19,8 @@ FILES = FileList[
   'Rakefile',
   'VERSION',
   'lib/*.rb',
-  'test/*.rb'
+  'test/*.rb',
+  'test/short-file'
 ]                        
 
 desc "Test everything."

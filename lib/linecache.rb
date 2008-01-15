@@ -50,6 +50,8 @@
 # same name.
 #
 
+require 'digest/sha1'
+
 # Defining SCRIPT_LINES__ causes Ruby to cache the lines of files
 # it reads. The key the setting of __FILE__ at the time when Ruby does
 # its read. LineCache keeps a separate copy of the lines elsewhere
@@ -99,7 +101,7 @@ module LineCache
 
   # Read lines of +filename+ and cache the results. However +filename+ was
   # previously cached use the results from the cache.
-  def getlines(filename, reload_on_change=true)
+  def getlines(filename, reload_on_change=false)
     checkcache(filename) if reload_on_change
     if @@file_cache.member?(filename)
         return @@file_cache[filename].lines
@@ -142,11 +144,42 @@ module LineCache
   end
   module_function :checkcache
 
+  # Cache filename if it's not already cached.
+  # Return the expanded filename for it in the cache
+  # or nil if we can't find the file.
+  def cache(filename, reload_on_change=false)
+    if @@file_cache.member?(filename)
+      checkcache(filename) if reload_on_change
+    else
+      return update_cache(filename, true)
+    end
+    if @@file_cache.member?(filename)
+      @@file_cache[filename].fullname
+    else
+      nil
+    end
+  end
+  module_function :cache
+      
   # Return true if filename is cached
   def cached?(filename)
     @@file_cache.member?(filename)
   end
   module_function :cached?
+      
+  # Return SHA1 of filename.
+  def sha1(filename)
+    return nil unless @@file_cache.member?(filename)
+    return @@file_cache[filename].sha1.hexdigest if 
+      @@file_cache[filename].sha1
+    sha1 = Digest::SHA1.new
+    @@file_cache[filename].lines.each do |line|
+      sha1 << line
+    end
+    @@file.cache[file.name].sha1 = sha1
+    sha1.hexdigest
+  end
+  module_function :sha1
       
   # Return File.stat in the cache for filename.
   def stat(filename)
@@ -154,7 +187,7 @@ module LineCache
     @@file_cache[filename].stat
   end
   module_function :stat
-      
+
   # Update a cache entry and return its list of lines.  if something's
   # wrong, discard the cache entry, and return an empty list.
   # If use_script_lines is true, try to get the 

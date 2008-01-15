@@ -5,9 +5,13 @@ require "tempfile"
 
 # Test LineCache module
 class TestLineCache < Test::Unit::TestCase
-  @@TOP_SRC_DIR = File.join(File.expand_path(File.dirname(__FILE__)), 
-                            '..', 'lib')
+  @@TEST_DIR = File.expand_path(File.dirname(__FILE__))
+  @@TOP_SRC_DIR = File.join(@@TEST_DIR, '..', 'lib')
   require File.join(@@TOP_SRC_DIR, 'linecache.rb')
+  
+  def setup
+    LineCache::clear_file_cache
+  end
   
   def test_basic
     fp = File.open(__FILE__, 'r')
@@ -59,7 +63,6 @@ class TestLineCache < Test::Unit::TestCase
   end
 
   def test_cached
-    LineCache::clear_file_cache
     assert_equal(false, LineCache::cached?(__FILE__),
                  "file #{__FILE__} shouldn't be cached - just cleared cache.")
     line = LineCache::getline(__FILE__, 1)
@@ -69,13 +72,20 @@ class TestLineCache < Test::Unit::TestCase
   end
 
   def test_stat
-    LineCache::clear_file_cache
     assert_equal(nil, LineCache::stat(__FILE__),
                  "stat for #{__FILE__} shouldn't be nil - just cleared cache.")
     line = LineCache::getline(__FILE__, 1)
     assert line
-    puts LineCache::stat(__FILE__).inspect
+    puts LineCache::sha1(__FILE__)
     assert(LineCache::stat(__FILE__),
            "file #{__FILE__} should now have a stat")
   end
+
+  def test_sha1
+    test_file = File.join(@@TEST_DIR, 'short-file') 
+    LineCache::cache(test_file)
+    assert_equal('d7ae2d65d8815607ddffa005e91a8add77ef4a1e', 
+                 LineCache::sha1(test_file))
+  end
+
 end
