@@ -176,7 +176,7 @@ module LineCache
     @@file_cache[filename].lines.each do |line|
       sha1 << line
     end
-    @@file.cache[file.name].sha1 = sha1
+    @@file_cache[filename].sha1 = sha1
     sha1.hexdigest
   end
   module_function :sha1
