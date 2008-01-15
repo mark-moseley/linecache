@@ -29,9 +29,9 @@
 # == SYNOPSIS
 #
 # The LineCache module allows one to get any line from any file,
-# caching lines of the file on first access to the file. The common
-# case where many lines are read from a single file. This can be used
-# for example in a debugger to show source lines.
+# caching lines of the file on first access to the file. The may be is
+# useful when a small random sets of lines are read from a single
+# file, in particular in a debugger to show source lines.
 #
 #  require 'linecache'
 #  lines = LineCache::getlines('/tmp/myruby.rb')
@@ -46,9 +46,14 @@
 #  LineCache::clear_file_cache('/tmp/myruby.rb')
 #  LineCache::update_cache   # Check for modifications of all cached files.
 #
-# This code is derived from the Python module of the same name.
+# Some parts of the interface is derived from the Python module of the
+# same name.
 #
 
+# Defining SCRIPT_LINES__ causes Ruby to cache the lines of files
+# it reads. The key the setting of __FILE__ at the time when Ruby does
+# its read. LineCache keeps a separate copy of the lines elsewhere
+# and never destroys __SCRIPT_LINES
 SCRIPT_LINES__ = {} unless defined? SCRIPT_LINES__
 
 # require "rubygems"
@@ -86,12 +91,8 @@ module LineCache
   @@file_cache = {} # the cache
 
   # Clear the file cache entirely.
-  def clear_file_cache(script_lines_too=false)
+  def clear_file_cache()
     @@file_cache = {}
-    SCRIPT_LINES__.keys.each do |filename|
-      next unless File.exists?(filename)
-      SCRIPT_LINES__[filename] = nil
-    end
   end
 
   module_function :clear_file_cache
@@ -111,6 +112,9 @@ module LineCache
 
   # Discard cache entries that are out of date. If +filename+ is +nil+
   # all entries in the file cache +@@file_cache+ are checked.
+  # If we don't have stat information about a file which can happen
+  # if the file was read from __SCRIPT_LINES but no corresponding file
+  # is found, it will be kept.
   def checkcache(filename=nil)
     
     if !filename
@@ -127,7 +131,8 @@ module LineCache
       if File.exist?(fullname)
         cache_info = @@file_cache[filename]
         stat = File.stat(fullname)
-        if cache_info.size != stat.size or cache_info.mtime != stat.mtime
+        if stat && 
+            (cache_info.size != stat.size or cache_info.mtime != stat.mtime)
           @@file_cache.delete(filename)
         end
       else
@@ -156,7 +161,6 @@ module LineCache
           rescue
             stat = nil
           end
-          lines = SCRIPT_LINES__[name].dup
           @@file_cache[filename] = LineCacheInfo.new(stat, lines, fullname)
           return lines
         end
