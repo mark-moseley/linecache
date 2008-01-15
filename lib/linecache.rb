@@ -62,7 +62,7 @@ SCRIPT_LINES__ = {} unless defined? SCRIPT_LINES__
 # = module LineCache
 # Module caching lines of a file
 module LineCache
-  LineCacheInfo = Struct.new(:stat, :lines, :fullname)
+  LineCacheInfo = Struct.new(:stat, :lines, :fullname, :sha1)
  
   # Get line +line_number+ from file named +filename+. Return nil if
   # there was a problem. If a file named filename is not found, the
@@ -140,8 +140,20 @@ module LineCache
       end
     end
   end
-
   module_function :checkcache
+
+  # Return true if filename is cached
+  def cached?(filename)
+    @@file_cache.member?(filename)
+  end
+  module_function :cached?
+      
+  # Return File.stat in the cache for filename.
+  def stat(filename)
+    return nil unless @@file_cache.member?(filename)
+    @@file_cache[filename].stat
+  end
+  module_function :stat
       
   # Update a cache entry and return its list of lines.  if something's
   # wrong, discard the cache entry, and return an empty list.
@@ -161,7 +173,8 @@ module LineCache
           rescue
             stat = nil
           end
-          @@file_cache[filename] = LineCacheInfo.new(stat, lines, fullname)
+          lines = SCRIPT_LINES__[name]
+          @@file_cache[filename] = LineCacheInfo.new(stat, lines, fullname, nil)
           return lines
         end
       end
@@ -192,7 +205,7 @@ module LineCache
       return []
     end
     @@file_cache[filename] = LineCacheInfo.new(File.stat(fullname), lines, 
-                                               fullname)
+                                               fullname, nil)
     return lines
   end
 
@@ -203,10 +216,22 @@ end
 # example usage
 if __FILE__ == $0 or
     ($DEBUG and ['rcov'].include?(File.basename($0)))
+  def yes_no(var) 
+    return var ? "" : "not "
+  end
+
   lines = LineCache::getlines(__FILE__)
+  puts "#{__FILE__} has #{lines.size} lines"
   line = LineCache::getline(__FILE__, 6)
+  puts "The 6th line is\n#{line}" 
   LineCache::update_cache(__FILE__)
   LineCache::checkcache(__FILE__)
+  puts("#{__FILE__} is %scached." % 
+       yes_no(LineCache::cached?(__FILE__)))
+  LineCache::stat(__FILE__).inspect
   LineCache::checkcache # Check all files in the cache
   LineCache::clear_file_cache 
+  puts("#{__FILE__} is now %scached." % 
+       yes_no(LineCache::cached?(__FILE__)))
+
 end

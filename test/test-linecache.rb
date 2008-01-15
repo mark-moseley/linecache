@@ -57,4 +57,25 @@ class TestLineCache < Test::Unit::TestCase
     LineCache::update_cache(__FILE__)
     LineCache::clear_file_cache
   end
+
+  def test_cached
+    LineCache::clear_file_cache
+    assert_equal(false, LineCache::cached?(__FILE__),
+                 "file #{__FILE__} shouldn't be cached - just cleared cache.")
+    line = LineCache::getline(__FILE__, 1)
+    assert line
+    assert_equal(true, LineCache::cached?(__FILE__),
+                 "file #{__FILE__} should now be cached")
+  end
+
+  def test_stat
+    LineCache::clear_file_cache
+    assert_equal(nil, LineCache::stat(__FILE__),
+                 "stat for #{__FILE__} shouldn't be nil - just cleared cache.")
+    line = LineCache::getline(__FILE__, 1)
+    assert line
+    puts LineCache::stat(__FILE__).inspect
+    assert(LineCache::stat(__FILE__),
+           "file #{__FILE__} should now have a stat")
+  end
 end
