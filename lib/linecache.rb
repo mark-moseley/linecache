@@ -96,8 +96,13 @@ module LineCache
   def clear_file_cache()
     @@file_cache = {}
   end
-
   module_function :clear_file_cache
+
+  # Return an array of cached file names
+  def cached_files()
+    @@file_cache.keys
+  end
+  module_function :cached_files
 
   # Read lines of +filename+ and cache the results. However +filename+ was
   # previously cached use the results from the cache.
@@ -257,11 +262,12 @@ if __FILE__ == $0 or
   puts "#{__FILE__} has #{lines.size} lines"
   line = LineCache::getline(__FILE__, 6)
   puts "The 6th line is\n#{line}" 
+  puts("Files cached: #{LineCache::cached_files.inspect}")
   LineCache::update_cache(__FILE__)
   LineCache::checkcache(__FILE__)
   puts("#{__FILE__} is %scached." % 
        yes_no(LineCache::cached?(__FILE__)))
-  LineCache::stat(__FILE__).inspect
+  puts LineCache::stat(__FILE__).inspect
   LineCache::checkcache # Check all files in the cache
   LineCache::clear_file_cache 
   puts("#{__FILE__} is now %scached." % 
