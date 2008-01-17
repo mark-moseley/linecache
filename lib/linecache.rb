@@ -50,13 +50,13 @@
 # same name.
 #
 
-require 'digest/sha1'
-
 # Defining SCRIPT_LINES__ causes Ruby to cache the lines of files
 # it reads. The key the setting of __FILE__ at the time when Ruby does
 # its read. LineCache keeps a separate copy of the lines elsewhere
 # and never destroys __SCRIPT_LINES
 SCRIPT_LINES__ = {} unless defined? SCRIPT_LINES__
+
+require 'digest/sha1'
 
 # require "rubygems"
 # require "ruby-debug" ; Debugger.start
@@ -184,6 +184,11 @@ module LineCache
     @@file_cache.member?(filename)
   end
   module_function :cached?
+
+  def cached_script?(filename)
+    SCRIPT_LINES__.member?(filename) 
+  end
+  module_function :cached_script?
       
   # Return full filename path for filename
   def path(filename)
@@ -297,5 +302,6 @@ if __FILE__ == $0 or
   LineCache::clear_file_cache 
   puts("#{__FILE__} is now %scached." % 
        yes_no(LineCache::cached?(__FILE__)))
-
+  digest = SCRIPT_LINES__.select{|k,v| k =~ /digest.rb$/}
+  puts digest.first[0] if digest
 end

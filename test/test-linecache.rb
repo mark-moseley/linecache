@@ -66,12 +66,21 @@ class TestLineCache < Test::Unit::TestCase
   end
 
   def test_cached
+    LineCache::clear_file_cache
     assert_equal(false, LineCache::cached?(__FILE__),
                  "file #{__FILE__} shouldn't be cached - just cleared cache.")
     line = LineCache::getline(__FILE__, 1)
     assert line
     assert_equal(true, LineCache::cached?(__FILE__),
                  "file #{__FILE__} should now be cached")
+    assert_equal(false, LineCache::cached_script?('./short-file'),
+                 "Should not find './short-file' in SCRIPT_LINES__")
+    Dir.chdir(File.dirname(__FILE__)) do 
+      load('./short-file', 0)
+      puts SCRIPT_LINES__.keys.inspect
+      assert_equal(true, LineCache::cached_script?('./short-file'),
+                   "Should be able to find './short-file' in SCRIPT_LINES__")
+    end
   end
 
   def test_stat
@@ -95,7 +104,7 @@ class TestLineCache < Test::Unit::TestCase
   def test_sha1
     test_file = File.join(@@TEST_DIR, 'short-file') 
     LineCache::cache(test_file)
-    assert_equal('d7ae2d65d8815607ddffa005e91a8add77ef4a1e', 
+    assert_equal('1134f95ea84a3dcc67d7d1bf41390ee1a03af6d2',
                  LineCache::sha1(test_file))
   end
 
