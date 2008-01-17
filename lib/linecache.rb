@@ -64,7 +64,7 @@ SCRIPT_LINES__ = {} unless defined? SCRIPT_LINES__
 # = module LineCache
 # Module caching lines of a file
 module LineCache
-  LineCacheInfo = Struct.new(:stat, :lines, :fullname, :sha1) unless
+  LineCacheInfo = Struct.new(:stat, :lines, :path, :sha1) unless
     defined?(LineCacheInfo)
  
   # Get line +line_number+ from file named +filename+. Return nil if
@@ -147,10 +147,10 @@ module LineCache
     result = []
     for filename in filenames
       next unless @@file_cache.member?(filename)
-      fullname = @@file_cache[filename].fullname
-      if File.exist?(fullname)
+      path = @@file_cache[filename].path
+      if File.exist?(path)
         cache_info = @@file_cache[filename]
-        stat = File.stat(fullname)
+        stat = File.stat(path)
         if stat && 
             (cache_info.size != stat.size or cache_info.mtime != stat.mtime)
           result << filename
@@ -172,7 +172,7 @@ module LineCache
       update_cache(filename, true)
     end
     if @@file_cache.member?(filename)
-      @@file_cache[filename].fullname
+      @@file_cache[filename].path
     else
       nil
     end
@@ -185,6 +185,13 @@ module LineCache
   end
   module_function :cached?
       
+  # Return full filename path for filename
+  def path(filename)
+    return nil unless @@file_cache.member?(filename)
+    @@file_cache[filename].path
+  end
+  module_function :path
+
   # Return SHA1 of filename.
   def sha1(filename)
     return nil unless @@file_cache.member?(filename)
@@ -215,12 +222,12 @@ module LineCache
     return nil unless filename
 
     @@file_cache.delete(filename)
-    fullname = File.expand_path(filename)
+    path = File.expand_path(filename)
     
     if use_script_lines
       list = [filename]
-      list << @@full2file_cache_key[fullname] if 
-        @@full2file_cache_key[fullname]
+      list << @@full2file_cache_key[path] if 
+        @@full2file_cache_key[path]
       list.each do |name| 
         if !SCRIPT_LINES__[name].nil? && SCRIPT_LINES__[name] != true
           begin 
@@ -229,38 +236,38 @@ module LineCache
             stat = nil
           end
           lines = SCRIPT_LINES__[name]
-          @@file_cache[filename] = LineCacheInfo.new(stat, lines, fullname, nil)
-          @@full2file_cache_key[fullname] = filename
+          @@file_cache[filename] = LineCacheInfo.new(stat, lines, path, nil)
+          @@full2file_cache_key[path] = filename
           return true
         end
       end
     end
       
-    if File.exist?(fullname)
-      stat = File.stat(fullname)
+    if File.exist?(path)
+      stat = File.stat(path)
     elsif File.basename(filename) == filename
       # try looking through the search path.
       stat = nil
       for dirname in $:
-        fullname = File.join(dirname, filename)
-        if File.exist?(fullname)
-            stat = File.stat(fullname)
+        path = File.join(dirname, filename)
+        if File.exist?(path)
+            stat = File.stat(path)
             break
         end
       end
       return false unless stat
     end
     begin
-      fp = File.open(fullname, 'r')
+      fp = File.open(path, 'r')
       lines = fp.readlines()
       fp.close()
     rescue 
-      ##  print '*** cannot open', fullname, ':', msg
+      ##  print '*** cannot open', path, ':', msg
       return nil
     end
-    @@file_cache[filename] = LineCacheInfo.new(File.stat(fullname), lines, 
-                                               fullname, nil)
-    @@full2file_cache_key[fullname] = filename
+    @@file_cache[filename] = LineCacheInfo.new(File.stat(path), lines, 
+                                               path, nil)
+    @@full2file_cache_key[path] = filename
     return true
   end
 
@@ -285,6 +292,7 @@ if __FILE__ == $0 or
   puts("#{__FILE__} is %scached." % 
        yes_no(LineCache::cached?(__FILE__)))
   puts LineCache::stat(__FILE__).inspect
+  puts "Full path: #{LineCache::path(__FILE__)}"
   LineCache::checkcache # Check all files in the cache
   LineCache::clear_file_cache 
   puts("#{__FILE__} is now %scached." % 

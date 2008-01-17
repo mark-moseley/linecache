@@ -83,6 +83,15 @@ class TestLineCache < Test::Unit::TestCase
            "file #{__FILE__} should now have a stat")
   end
 
+  def test_path
+    assert_equal(nil, LineCache::path(__FILE__),
+                 "path for #{__FILE__} shouldn't be nil - just cleared cache.")
+    path = LineCache::cache(__FILE__)
+    assert path
+    assert_equal(path, LineCache::path(__FILE__),
+           "path of #{__FILE__} should be the same as we got before")
+  end
+
   def test_sha1
     test_file = File.join(@@TEST_DIR, 'short-file') 
     LineCache::cache(test_file)
