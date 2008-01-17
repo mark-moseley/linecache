@@ -75,9 +75,9 @@ class TestLineCache < Test::Unit::TestCase
                  "file #{__FILE__} should now be cached")
     assert_equal(false, LineCache::cached_script?('./short-file'),
                  "Should not find './short-file' in SCRIPT_LINES__")
+    assert_equal(true, 78 < LineCache.lines(__FILE__))
     Dir.chdir(File.dirname(__FILE__)) do 
       load('./short-file', 0)
-      puts SCRIPT_LINES__.keys.inspect
       assert_equal(true, LineCache::cached_script?('./short-file'),
                    "Should be able to find './short-file' in SCRIPT_LINES__")
     end

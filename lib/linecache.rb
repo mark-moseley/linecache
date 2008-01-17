@@ -190,6 +190,13 @@ module LineCache
   end
   module_function :cached_script?
       
+  # Return the number of lines in filename
+  def lines(filename)
+    return nil unless @@file_cache.member?(filename)
+    @@file_cache[filename].lines.length
+  end
+  module_function :lines
+
   # Return full filename path for filename
   def path(filename)
     return nil unless @@file_cache.member?(filename)
@@ -294,6 +301,7 @@ if __FILE__ == $0 or
   puts("Files cached: #{LineCache::cached_files.inspect}")
   LineCache::update_cache(__FILE__)
   LineCache::checkcache(__FILE__)
+  LineCache::lines(__FILE__)
   puts("#{__FILE__} is %scached." % 
        yes_no(LineCache::cached?(__FILE__)))
   puts LineCache::stat(__FILE__).inspect
