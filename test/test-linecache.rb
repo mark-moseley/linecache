@@ -1,7 +1,10 @@
 #!/usr/bin/env ruby
-require "test/unit"
-require "fileutils"
-require "tempfile"
+require 'test/unit'
+require 'fileutils'
+require 'tempfile'
+
+# require 'rubygems'
+# require 'ruby-debug'; Debugger.start
 
 # Test LineCache module
 class TestLineCache < Test::Unit::TestCase
@@ -34,7 +37,7 @@ class TestLineCache < Test::Unit::TestCase
     Dir.chdir(File.dirname(__FILE__)) do 
       short_file = File.basename(__FILE__)
       test_line = 10
-      line = LineCache::getline(__FILE__, test_line)
+      line = LineCache::getline(short_file, test_line)
       assert_equal(compare_lines[test_line-1], line,
                    'Short filename lookup should work')
     end

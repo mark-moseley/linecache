@@ -64,7 +64,8 @@ SCRIPT_LINES__ = {} unless defined? SCRIPT_LINES__
 # = module LineCache
 # Module caching lines of a file
 module LineCache
-  LineCacheInfo = Struct.new(:stat, :lines, :fullname, :sha1)
+  LineCacheInfo = Struct.new(:stat, :lines, :fullname, :sha1) unless
+    defined?(LineCacheInfo)
  
   # Get line +line_number+ from file named +filename+. Return nil if
   # there was a problem. If a file named filename is not found, the
@@ -81,7 +82,7 @@ module LineCache
   #
   def getline(filename, line_number, reload_on_change=true)
     lines = getlines(filename, reload_on_change)
-    if (1..lines.size) === line_number
+    if lines and (1..lines.size) === line_number
         return lines[line_number-1]
     else
         return nil
@@ -90,8 +91,16 @@ module LineCache
 
   module_function :getline
 
-  @@file_cache = {} # the cache
-
+  # The file cache. The key is a name as would be given by Ruby for 
+  # __FILE__. The value is a LineCacheInfo object. 
+  @@file_cache = {} 
+  
+  # Maps a string full filename (a String) to name in file_cache key
+  # (a String). Applications especially those that get input from users,
+  # may want to map a name into a full filename and then via 
+  # @@full2file_cache_key we can get the cached entry.
+  @@full2file_cache_key = {} 
+  
   # Clear the file cache entirely.
   def clear_file_cache()
     @@file_cache = {}
@@ -105,13 +114,15 @@ module LineCache
   module_function :cached_files
 
   # Read lines of +filename+ and cache the results. However +filename+ was
-  # previously cached use the results from the cache.
+  # previously cached use the results from the cache. Return nil
+  # if we can't get lines
   def getlines(filename, reload_on_change=false)
     checkcache(filename) if reload_on_change
     if @@file_cache.member?(filename)
-        return @@file_cache[filename].lines
+      return @@file_cache[filename].lines
     else
-        return update_cache(filename, true)
+      update_cache(filename, true)
+      return @@file_cache[filename].lines if @@file_cache.member?(filename)
     end
   end
 
@@ -121,8 +132,9 @@ module LineCache
   # all entries in the file cache +@@file_cache+ are checked.
   # If we don't have stat information about a file which can happen
   # if the file was read from __SCRIPT_LINES but no corresponding file
-  # is found, it will be kept.
-  def checkcache(filename=nil)
+  # is found, it will be kept. Return a list of invalidated filenames.
+  # nil is returned if a filename was given but not found cached.
+  def checkcache(filename=nil, use_script_lines=false)
     
     if !filename
       filenames = @@file_cache.keys()
@@ -132,6 +144,7 @@ module LineCache
       return nil
     end
 
+    result = []
     for filename in filenames
       next unless @@file_cache.member?(filename)
       fullname = @@file_cache[filename].fullname
@@ -140,12 +153,12 @@ module LineCache
         stat = File.stat(fullname)
         if stat && 
             (cache_info.size != stat.size or cache_info.mtime != stat.mtime)
-          @@file_cache.delete(filename)
+          result << filename
+          update_cache(filename, use_script_lines)
         end
-      else
-        @@file_cache.delete(filename)
       end
     end
+    return result
   end
   module_function :checkcache
 
@@ -156,7 +169,7 @@ module LineCache
     if @@file_cache.member?(filename)
       checkcache(filename) if reload_on_change
     else
-      return update_cache(filename, true)
+      update_cache(filename, true)
     end
     if @@file_cache.member?(filename)
       @@file_cache[filename].fullname
@@ -193,18 +206,22 @@ module LineCache
   end
   module_function :stat
 
-  # Update a cache entry and return its list of lines.  if something's
-  # wrong, discard the cache entry, and return an empty list.
-  # If use_script_lines is true, try to get the 
+  # Update a cache entry.  If something's
+  # wrong, return nil. Return true if the cache was updated and false
+  # if not.  If use_script_lines is true, use that as the source for the
+  # lines of the file
   def update_cache(filename, use_script_lines=false)
 
-    return [] unless filename
+    return nil unless filename
 
     @@file_cache.delete(filename)
     fullname = File.expand_path(filename)
     
     if use_script_lines
-      [filename, fullname].each do |name| 
+      list = [filename]
+      list << @@full2file_cache_key[fullname] if 
+        @@full2file_cache_key[fullname]
+      list.each do |name| 
         if !SCRIPT_LINES__[name].nil? && SCRIPT_LINES__[name] != true
           begin 
             stat = File.stat(name)
@@ -213,26 +230,25 @@ module LineCache
           end
           lines = SCRIPT_LINES__[name]
           @@file_cache[filename] = LineCacheInfo.new(stat, lines, fullname, nil)
-          return lines
+          @@full2file_cache_key[fullname] = filename
+          return true
         end
       end
     end
       
     if File.exist?(fullname)
       stat = File.stat(fullname)
-    else
-      basename = File.basename(filename)
-
+    elsif File.basename(filename) == filename
       # try looking through the search path.
       stat = nil
       for dirname in $:
-        fullname = File.join(dirname, basename)
+        fullname = File.join(dirname, filename)
         if File.exist?(fullname)
             stat = File.stat(fullname)
             break
         end
       end
-      return [] unless stat
+      return false unless stat
     end
     begin
       fp = File.open(fullname, 'r')
@@ -240,11 +256,12 @@ module LineCache
       fp.close()
     rescue 
       ##  print '*** cannot open', fullname, ':', msg
-      return []
+      return nil
     end
     @@file_cache[filename] = LineCacheInfo.new(File.stat(fullname), lines, 
                                                fullname, nil)
-    return lines
+    @@full2file_cache_key[fullname] = filename
+    return true
   end
 
   module_function :update_cache
