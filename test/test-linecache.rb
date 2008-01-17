@@ -66,7 +66,6 @@ class TestLineCache < Test::Unit::TestCase
   end
 
   def test_cached
-    LineCache::clear_file_cache
     assert_equal(false, LineCache::cached?(__FILE__),
                  "file #{__FILE__} shouldn't be cached - just cleared cache.")
     line = LineCache::getline(__FILE__, 1)
@@ -75,12 +74,19 @@ class TestLineCache < Test::Unit::TestCase
                  "file #{__FILE__} should now be cached")
     assert_equal(false, LineCache::cached_script?('./short-file'),
                  "Should not find './short-file' in SCRIPT_LINES__")
-    assert_equal(true, 78 < LineCache.lines(__FILE__))
+    assert_equal(true, 78 < LineCache.size(__FILE__))
     Dir.chdir(File.dirname(__FILE__)) do 
       load('./short-file', 0)
       assert_equal(true, LineCache::cached_script?('./short-file'),
                    "Should be able to find './short-file' in SCRIPT_LINES__")
     end
+  end
+
+  def test_remap
+    LineCache::remap_file(__FILE__, 'another-name')
+    line1 = LineCache::getline('another-name', 1)
+    line2 = LineCache::getline(__FILE__, 1)
+    assert_equal(line1, line2, 'Both lines should be the same via remap_file')
   end
 
   def test_stat
