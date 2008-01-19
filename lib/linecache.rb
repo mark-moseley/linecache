@@ -58,8 +58,8 @@ SCRIPT_LINES__ = {} unless defined? SCRIPT_LINES__
 
 require 'digest/sha1'
 
-# require "rubygems"
-# require "ruby-debug" ; Debugger.start
+# require 'rubygems'
+# require 'ruby-debug' ; Debugger.start
 
 # = module LineCache
 # Module caching lines of a file
@@ -84,10 +84,13 @@ module LineCache
   # probably want to remap not only the file name but also line
   # ranges. Will probably use this for that, but I'm not sure.
   @@file2file_remap = {} 
+  @@file2file_remap_lines = {}
   
   # Clear the file cache entirely.
   def clear_file_cache()
     @@file_cache = {}
+    @@file2file_remap = {}
+    @@file2file_remap_lines = {}
   end
   module_function :clear_file_cache
 
@@ -179,6 +182,8 @@ module LineCache
   #  end
   #
   def getline(filename, line_number, reload_on_change=true)
+    filename = unmap_file(filename)
+    filename, line_number = unmap_file_line(filename, line_number)
     lines = getlines(filename, reload_on_change)
     if lines and (1..lines.size) === line_number
         return lines[line_number-1]
@@ -216,6 +221,18 @@ module LineCache
   end
   module_function :remap_file
 
+  def remap_file_lines(from_file, to_file, range, start)
+    range = (range..range) if range.is_a?(Fixnum)
+    if @@file2file_remap_lines[to_file] 
+      # FIXME: need to check for overwriting ranges: whether
+      # they intersect or one encompasses another.
+      @@file2file_remap_lines[to_file] << [from_file, range, start]
+    else
+      @@file2file_remap_lines[to_file]  = [[from_file, range, start]]
+    end
+  end
+  module_function :remap_file_lines
+  
   # Return SHA1 of filename.
   def sha1(filename)
     filename = unmap_file(filename)
@@ -250,6 +267,19 @@ module LineCache
     @@file2file_remap[file] ? @@file2file_remap[file] : file
   end
   module_function :unmap_file
+
+  def unmap_file_line(file, line)
+    if @@file2file_remap_lines[file]
+      @@file2file_remap_lines[file].each do |from_file, range, start|
+        if range === line
+          from_file = from_file || file 
+          return [from_file, start+line-range.begin] 
+        end
+      end
+    end
+    return [file, line]
+  end
+  module_function :unmap_file_line
 
   # Update a cache entry.  If something's
   # wrong, return nil. Return true if the cache was updated and false
@@ -340,4 +370,9 @@ if __FILE__ == $0 or
        yes_no(LineCache::cached?(__FILE__)))
   digest = SCRIPT_LINES__.select{|k,v| k =~ /digest.rb$/}
   puts digest.first[0] if digest
+  line = LineCache::getline(__FILE__, 7)
+  puts "The 7th line is\n#{line}" 
+  LineCache::remap_file_lines(__FILE__, 'test2', (10..20), 6)
+  puts LineCache::getline('test2', 10)
+  puts "Remapped 10th line of test2 is\n#{line}" 
 end
