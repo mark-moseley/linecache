@@ -90,20 +90,29 @@ class TestLineCache < Test::Unit::TestCase
   end
 
   def test_remap_lines
+    LineCache::remap_file_lines(__FILE__, 'test2', (10..11), 6)
+
     line5 = LineCache::getline(__FILE__, 5)
-    line6 = LineCache::getline(__FILE__, 6)
-    line7 = LineCache::getline(__FILE__, 7)
-    LineCache::remap_file_lines(__FILE__, 'test2', (10..20), 6)
     LineCache::remap_file_lines(__FILE__, 'test2', 9, 5)
     rline9  = LineCache::getline('test2', 9)
-    rline10 = LineCache::getline('test2', 10)
-    rline11 = LineCache::getline('test2', 11)
     assert_equal(line5, rline9, 
                  'lines should be the same via remap_file_line - remap integer')
+
+    line6 = LineCache::getline(__FILE__, 6)
+    rline10 = LineCache::getline('test2', 10)
     assert_equal(line6, rline10, 
                  'lines should be the same via remap_file_line - range')
+
+    line7 = LineCache::getline(__FILE__, 7)
+    rline11 = LineCache::getline('test2', 11)
     assert_equal(line7, rline11, 
                  'lines should be the same via remap_file_line - range')
+
+    line8 = LineCache::getline(__FILE__, 8)
+    LineCache::remap_file_lines(__FILE__, nil, 20, 8)
+    rline20 = LineCache::getline(__FILE__, 20)
+    assert_equal(line8, rline20, 
+                 'lines should be the same via remap_file_line - nil file')
   end
 
   def test_stat

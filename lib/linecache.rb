@@ -223,6 +223,7 @@ module LineCache
 
   def remap_file_lines(from_file, to_file, range, start)
     range = (range..range) if range.is_a?(Fixnum)
+    to_file = from_file unless to_file
     if @@file2file_remap_lines[to_file] 
       # FIXME: need to check for overwriting ranges: whether
       # they intersect or one encompasses another.
