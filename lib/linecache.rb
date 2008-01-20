@@ -57,14 +57,16 @@
 SCRIPT_LINES__ = {} unless defined? SCRIPT_LINES__
 
 require 'digest/sha1'
+require 'set'
 
-# require 'rubygems'
+begin require 'rubygems' rescue LoadError end
+require 'tracelines'
 # require 'ruby-debug' ; Debugger.start
 
 # = module LineCache
 # Module caching lines of a file
 module LineCache
-  LineCacheInfo = Struct.new(:stat, :lines, :path, :sha1) unless
+  LineCacheInfo = Struct.new(:stat, :line_numbers, :lines, :path, :sha1) unless
     defined?(LineCacheInfo)
  
   # The file cache. The key is a name as would be given by Ruby for 
@@ -264,6 +266,18 @@ module LineCache
   end
   module_function :stat
 
+  def trace_line_numbers(filename, reload_on_change=false)
+    fullname = cache(filename, reload_on_change)
+    return nil unless fullname
+    e = @@file_cache[filename]
+    unless e.line_numbers
+      e.line_numbers = 
+        Set.new(TraceLineNumbers.line_numbers_for_string_array(e.lines))
+    end
+    e.line_numbers
+  end
+  module_function :trace_line_numbers
+    
   def unmap_file(file)
     @@file2file_remap[file] ? @@file2file_remap[file] : file
   end
@@ -304,7 +318,7 @@ module LineCache
             stat = nil
           end
           lines = SCRIPT_LINES__[name]
-          @@file_cache[filename] = LineCacheInfo.new(stat, lines, path, nil)
+          @@file_cache[filename] = LineCacheInfo.new(stat, nil, lines, path, nil)
           @@file2file_remap[path] = filename
           return true
         end
@@ -333,7 +347,7 @@ module LineCache
       ##  print '*** cannot open', path, ':', msg
       return nil
     end
-    @@file_cache[filename] = LineCacheInfo.new(File.stat(path), lines, 
+    @@file_cache[filename] = LineCacheInfo.new(File.stat(path), nil, lines,
                                                path, nil)
     @@file2file_remap[path] = filename
     return true
@@ -359,7 +373,9 @@ if __FILE__ == $0
   puts("Files cached: #{LineCache::cached_files.inspect}")
   LineCache::update_cache(__FILE__)
   LineCache::checkcache(__FILE__)
-  puts LineCache::size(__FILE__)
+  puts "#{__FILE__} has #{LineCache::size(__FILE__)} lines"
+  puts "#{__FILE__} trace line numbers:\n" + 
+    "#{LineCache::trace_line_numbers(__FILE__).to_a.sort.inspect}"
   puts("#{__FILE__} is %scached." % 
        yes_no(LineCache::cached?(__FILE__)))
   puts LineCache::stat(__FILE__).inspect

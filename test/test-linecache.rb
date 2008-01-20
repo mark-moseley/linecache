@@ -2,6 +2,7 @@
 require 'test/unit'
 require 'fileutils'
 require 'tempfile'
+require 'set'
 
 # require 'rubygems'
 # require 'ruby-debug'; Debugger.start
@@ -131,6 +132,13 @@ class TestLineCache < Test::Unit::TestCase
     assert path
     assert_equal(path, LineCache::path(__FILE__),
            "path of #{__FILE__} should be the same as we got before")
+  end
+
+  def test_trace_line_numbers
+    test_file = File.join(@@TEST_DIR, 'short-file')
+    assert_equal(Set.new, LineCache::trace_line_numbers(test_file))
+    test_file = File.join(@@TEST_DIR, 'rcov-bug.rb')
+    assert_equal(Set.new([2, 9]), LineCache::trace_line_numbers(test_file))
   end
 
   def test_sha1

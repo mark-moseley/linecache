@@ -62,7 +62,7 @@ EOF
   spec.required_ruby_version = '>= 1.8.2'
   spec.date = Time.now
   spec.rubyforge_project = 'rocky-hacks'
-  spec.add_dependency('parsetree', '>= 2.1.1')
+  spec.add_dependency('ParseTree', '>= 2.1.1')
   
   # rdoc
   spec.has_rdoc = true
