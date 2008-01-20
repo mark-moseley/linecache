@@ -344,8 +344,7 @@ module LineCache
 end
 
 # example usage
-if __FILE__ == $0 or
-    ($DEBUG and ['rcov'].include?(File.basename($0)))
+if __FILE__ == $0 
   def yes_no(var) 
     return var ? "" : "not "
   end

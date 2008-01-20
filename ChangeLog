@@ -1,3 +1,78 @@
+2008-01-17 22:25  rockyb
+
+	* lib/linecache.rb, test/test-linecache.rb: lines -> size. Add
+	  empty? Add remap_file.
+
+2008-01-17 20:05  rockyb
+
+	* lib/linecache.rb, test/test-linecache.rb: Add method to get the
+	  number of lines in a cached file.
+
+2008-01-17 19:42  rockyb
+
+	* lib/linecache.rb, test/short-file, test/test-linecache.rb: Add
+	  convenience method for testing presence in SCRIPT_LINES__.
+
+2008-01-17 07:30  rockyb
+
+	* lib/linecache.rb, test/test-linecache.rb: Add path method and
+	  test.
+
+2008-01-17 06:54  rockyb
+
+	* VERSION, lib/linecache.rb, test/test-linecache.rb: Add
+	  @@full2file_cache_key. getlines wasn't returning the right value
+	  sometimes.
+	  Make return from checkcache meaningful. Change return value of
+	  upate_cache().
+	  test-linecache.rb: was testing for buggy behavior!
+	  VERSION: now in 0.3 - hope we get it right this time.
+
+2008-01-16 12:51  rockyb
+
+	* lib/linecache.rb: Add cached_files.
+
+2008-01-16 01:30  rockyb
+
+	* NEWS: Update news for 0.2 release.
+
+2008-01-15 22:43  rockyb
+
+	* test/test-linecache.rb: Remove debug line.
+
+2008-01-15 22:42  rockyb
+
+	* lib/linecache.rb: Fix some syntax errors.
+
+2008-01-15 22:40  rockyb
+
+	* Rakefile, lib/linecache.rb, test/short-file,
+	  test/test-linecache.rb: Add routine to save and get SHA1.
+
+2008-01-15 22:16  rockyb
+
+	* lib/linecache.rb, test/test-linecache.rb: Add cached? and stat
+	  methods to determine in a file is cached and get
+	  File.stat from it.
+
+2008-01-15 08:49  rockyb
+
+	* lib/linecache.rb: Don't ever modify SCRIPT_LINES__. And until
+	  SCRIPT_LINES__ is fixed,
+	  don't read from it. Corrections to comments.
+
+2008-01-14 12:27  rockyb
+
+	* ChangeLog, VERSION, lib/linecache.rb: Add parameter to getline
+	  and getlines to reload file on change. Add
+	  option on clear_file_cache to clear out SCRIPT_LINES__ as well.
+	  TESTS ARE NEEDED.
+	  Update to version 0.2.
+
+2008-01-14 03:41  rockyb
+
+	* lib/linecache.rb: Use SCRIPT_LINES__ if we can.
+
 2007-12-10 16:24  rockyb
 
 	* linecache/linecache: release 0.1
