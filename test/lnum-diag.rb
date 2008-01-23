@@ -21,12 +21,16 @@ def dump_file(file, print_file=false)
   expected_str = first_line[1..-1]
   begin
     expected_lnums = eval(expected_str, binding, __FILE__, __LINE__)
-  rescue
+  rescue SyntaxError
+    puts '=' * 80
     puts "Failed reading expected values from #{file}"
   else
-    got_lnums = TraceLineNumbers.lnums_for_str(lines)
-    puts expected_lnums.inspect
-    puts '-' * 80
+    expected_lnums = nil
+  end
+  got_lnums = TraceLineNumbers.lnums_for_str(lines)
+  puts expected_lnums.inspect
+  puts '-' * 80
+  if expected_lnums 
     if got_lnums != expected_lnums
       puts got_lnums.inspect
     else
