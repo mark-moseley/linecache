@@ -628,7 +628,7 @@ again:
     }
     if (RTEST(ruby_debug)) {
       indent_level -= 2;
-      fprintf(stderr, "\n");
+      fprintf(stderr, "]\n");
     }
 
 } /* add_line_numbers block */
