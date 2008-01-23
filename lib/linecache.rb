@@ -272,7 +272,7 @@ module LineCache
     e = @@file_cache[filename]
     unless e.line_numbers
       e.line_numbers = 
-        Set.new(TraceLineNumbers.line_numbers_for_string_array(e.lines))
+        Set.new(TraceLineNumbers.lnums_for_str_array(e.lines))
     end
     e.line_numbers
   end

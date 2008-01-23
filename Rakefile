@@ -18,15 +18,17 @@ FILES = FileList[
   'README',
   'Rakefile',
   'VERSION',
+  'ext/trace_nums.*',
+  'ext/extconf.rb',
   'lib/*.rb',
   'test/*.rb',
   'test/short-file'
 ]                        
 
 desc "Test everything."
-test_task = task :test => :lib do 
+test_task = task :test => [:lib, :ext] do 
   Rake::TestTask.new(:test) do |t|
-    t.libs << ['./lib']
+    t.libs << ['./lib', './ext']
     t.pattern = 'test/test-*.rb'
     t.verbose = true
   end
@@ -62,7 +64,6 @@ EOF
   spec.required_ruby_version = '>= 1.8.2'
   spec.date = Time.now
   spec.rubyforge_project = 'rocky-hacks'
-  spec.add_dependency('ParseTree', '>= 2.1.1')
   
   # rdoc
   spec.has_rdoc = true
@@ -99,6 +100,9 @@ Rake::RDocTask.new("rdoc") do |rdoc|
   rdoc.options << "--inline-source" << "--line-numbers"
   # Make the readme file the start page for the generated html
   rdoc.options << '--main' << 'README'
-  rdoc.rdoc_files.include('lib/*.rb', 'README', 'COPYING')
+  rdoc.rdoc_files.include('ext/**/*.c',
+                          'lib/*.rb', 
+                          'README', 
+                          'COPYING')
 end
 
