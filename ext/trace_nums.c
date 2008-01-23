@@ -50,6 +50,9 @@ struct BLOCK {
   rb_ary_push(ary, INT2NUM(nd_line(node)))
 
 
+/* Used just in debugging. */
+static indent_level = 0;
+
 static
 void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
   NODE * volatile contnode = 0;
@@ -57,14 +60,17 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
   VALUE current;
 
   if (RTEST(ruby_debug)) {
-    fprintf(stderr, "[", nd_type(node));
+    char fmt[30] = { '\0', };
+    snprintf(fmt, sizeof(fmt), "%%%ds", indent_level+1);
+    fprintf(stderr, fmt, "[");
+    indent_level += 2;
   }
 
 again:
   if (!node) return;
 
   if (RTEST(ruby_debug)) {
-    fprintf(stderr, "%s", NODE2NAME[nd_type(node)]);
+    fprintf(stderr, "%s ", NODE2NAME[nd_type(node)]);
   }
 
   switch (nd_type(node)) {
@@ -620,6 +626,10 @@ again:
 	contnode = 0;
 	goto again;
     }
+    if (RTEST(ruby_debug)) {
+      indent_level -= 2;
+      fprintf(stderr, "\n");
+    }
 
 } /* add_line_numbers block */
 
@@ -652,6 +662,9 @@ lnums_for_str(VALUE self, VALUE src) {
     rb_exc_raise(ruby_errinfo);
   }
 
+  if (RTEST(ruby_debug)) {
+    indent_level = 0;
+  }
   add_line_numbers(self, node, result);
   return result;
 }
