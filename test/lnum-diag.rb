@@ -22,7 +22,7 @@ def dump_file(file, print_file=false)
   begin
     expected_lnums = eval(expected_str, binding, __FILE__, __LINE__)
   rescue
-    assert nil, "Failed reading expected values from #{file}"
+    puts "Failed reading expected values from #{file}"
   else
     got_lnums = TraceLineNumbers.lnums_for_str(lines)
     puts expected_lnums.inspect
