@@ -43,7 +43,7 @@ def dump_file(file, print_file=false)
   puts '-' * 80
   if expected_lnums 
     if got_lnums != expected_lnums
-      puts got_lnums.inspect
+      puts "mismatch: #{got_lnums.inspect}"
     else
       puts 'Got what was expected'
     end

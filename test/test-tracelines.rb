@@ -17,19 +17,19 @@ class TestLineNumbers1 < Test::Unit::TestCase
   def test_for_file
     test_file = File.join(@@TEST_DIR, 'rcov-bug.rb')
     rcov_lines = TraceLineNumbers.lnums_for_file(test_file)
-    assert_equal([2, 9], rcov_lines)
+    assert_equal([5, 12, 12], rcov_lines)
   end
 
   def test_for_string
     string = "# Some rcov bugs.\nz = \"\nNow is the time\n\"\n\nz =~ \n     /\n      5\n     /ix\n"
     rcov_lines = TraceLineNumbers.lnums_for_str(string)
-    assert_equal([2, 9], rcov_lines)
+    assert_equal([2, 9, 9], rcov_lines)
   end
 
   def test_for_string_array
     test_file = File.join(@@TEST_DIR, 'rcov-bug.rb')
     load(test_file, 0) # 
     rcov_lines = TraceLineNumbers.lnums_for_str_array(SCRIPT_LINES__[test_file])
-    assert_equal([2, 9], rcov_lines)
+    assert_equal([5, 12, 12], rcov_lines)
   end
 end
