@@ -25,6 +25,8 @@ def dump_file(file, print_file=false)
       __FILE__ != f
     }
     tracer.on{load(file)}
+  else
+    fp.rewind
   end
   first_line = fp.readline.chomp
   fp.close()
