@@ -1,5 +1,9 @@
 #!/usr/bin/env ruby
 
+require 'tracer'
+# begin require 'rubygems' rescue LoadError end
+# require 'ruby-debug' ; Debugger.start
+
 TEST_DIR = File.expand_path(File.dirname(__FILE__))
 TOP_SRC_DIR = File.join(TEST_DIR, '..')
 require File.join(TOP_SRC_DIR, 'lib', 'tracelines.rb')
@@ -15,6 +19,12 @@ def dump_file(file, print_file=false)
     fp.rewind
     cmd = "#{File.join(TEST_DIR, 'parse-show.rb')} #{file}"
     system(cmd)
+    puts '=' * 80
+    tracer = Tracer.new
+    tracer.add_filter lambda {|event, f, line, id, binding, klass|
+      __FILE__ != f
+    }
+    tracer.on{load(file)}
   end
   first_line = fp.readline.chomp
   fp.close()
@@ -24,7 +34,6 @@ def dump_file(file, print_file=false)
   rescue SyntaxError
     puts '=' * 80
     puts "Failed reading expected values from #{file}"
-  else
     expected_lnums = nil
   end
   got_lnums = TraceLineNumbers.lnums_for_str(lines)
@@ -36,6 +45,8 @@ def dump_file(file, print_file=false)
     else
       puts 'Got what was expected'
     end
+  else
+    puts got_lnums.inspect
   end
 end
 
