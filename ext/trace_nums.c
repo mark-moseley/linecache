@@ -46,21 +46,21 @@ struct BLOCK {
 #define RETURN					\
   goto finish
 
-#define ADD_EVENT_LINE(node)			\
+#define EVENT_LINE(node)			\
   rb_ary_push(ary, INT2NUM(nd_line(node)))
 
 #ifdef FINISHED
-#define ADD_EVENT_CALL(node)			\
+#define EVENT_CALL(node)			\
   rb_ary_push(ary, INT2NUM(nd_line(node)))
 #else
-#define ADD_EVENT_CALL(node)
+#define EVENT_CALL(node)
 #endif
 
 /* Used just in debugging. */
 static indent_level = 0;
 
 static
-void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
+void ln_eval(VALUE self, NODE * n, VALUE ary) {
   NODE * volatile contnode = 0;
   NODE * volatile node = n;
 
@@ -82,9 +82,8 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
   switch (nd_type(node)) {
   case NODE_BLOCK:
     if (contnode) {
-      ADD_EVENT_LINE(node);
-      contnode = 0;
-      goto again;
+      EVENT_LINE(node);
+      break;
     }
     contnode = node->nd_next;
     node = node->nd_head;
@@ -92,6 +91,11 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
 
   case NODE_POSTEXE: /* END { ... } */
     /* Nothing to do here... we are in an iter block */
+    /*** 
+	rb_f_END();
+	nd_set_type(node, NODE_NIL); /+ exec just once +/
+	result = Qnil;
+    ***/
     break;
 
     /* begin .. end without clauses */
@@ -102,43 +106,55 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
 
     /* nodes for speed-up(default match) */
   case NODE_MATCH:
+    /* result = rb_reg_match2(node->nd_lit); */
     break;
 
     /* nodes for speed-up(literal match) */
   case NODE_MATCH2:
-    add_line_numbers(self, node->nd_recv, ary); 
-    add_line_numbers(self, node->nd_value, ary); 
+    /* l = */ ln_eval(self, node->nd_recv, ary); 
+    /* r = */ ln_eval(self, node->nd_value, ary); 
+    /*** result = rb_reg_match(l, r); ***/
     break;
 
+    /* nodes for speed-up(literal match) */
   case NODE_MATCH3: /* z =~ /"#{var}"/ for example */
-    add_line_numbers(self, node->nd_recv, ary);  /* receiver */
-    /* It is possible that value can be a function call which
-       can trigger an call event. So to be conservative, 
-       we have to add a line number here. */
-    ADD_EVENT_CALL(node);
-    add_line_numbers(self, node->nd_value, ary); 
+    /* r = */ ln_eval(self, node->nd_recv, ary);
+    /* l = */ ln_eval(self, node->nd_value, ary); 
+    /***
+	if (TYPE(l) == T_STRING) {
+	result = rb_reg_match(r, l);
+	}
+	else {
+	// It is possible that value can be a function call which
+	// can trigger an call event. So to be conservative, 
+	// we have to add a line number here.
+	result = rb_funcall(l, match, 1, r);
+	}
+    ****/
+    EVENT_CALL(node);
     break;
 
+    /* node for speed-up(top-level loop for -n/-p) */
   case NODE_OPT_N:
-  case NODE_NOT:
-    add_line_numbers(self, node->nd_body, ary); 
+    /* Lots of ugliness in eval.c.  */
+    ln_eval(self, node->nd_body, ary); 
     break;
 
   case NODE_SELF:
   case NODE_NIL:
   case NODE_TRUE:
   case NODE_FALSE:
-    RETURN;
+    RETURN /* (something) */;
 
   case NODE_IF:
-    ADD_EVENT_LINE(node);
-    add_line_numbers(self, node->nd_cond, ary);
+    EVENT_LINE(node);
+    ln_eval(self, node->nd_cond, ary);
     if (node->nd_body) {
       if (!node->nd_else) {
 	node = node->nd_body;
 	goto again;
       }
-      add_line_numbers(self, node->nd_body, ary);
+      ln_eval(self, node->nd_body, ary);
     }
     if (node->nd_else) {
       node = node->nd_else;
@@ -147,6 +163,7 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
     break;
 
   case NODE_WHEN:
+    /* Follows parse_tree.c rather than eval.c */
     when_level++;
     if (!inside_case_args && case_level < when_level) { 
       /* when without case, ie, no expr in case */
@@ -155,25 +172,26 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
       goto again;
     }
     inside_case_args++;
-    ADD_EVENT_LINE(node->nd_head);
-    add_line_numbers(self, node->nd_head, ary); /* args */
+    EVENT_LINE(node->nd_head);
+    ln_eval(self, node->nd_head, ary); /* args */
     inside_case_args--;
 
     if (node->nd_body) {
-      add_line_numbers(self, node->nd_body, ary); /* body */
+      ln_eval(self, node->nd_body, ary); /* body */
     }
 
     if (when_level > 0) when_level--;
     break;
 
   case NODE_CASE:
+    /* Follows parse_tree.c rather than eval.c */
     case_level++;
     if (node->nd_head != NULL) {
-      add_line_numbers(self, node->nd_head, ary); /* expr */
+      ln_eval(self, node->nd_head, ary); /* expr */
     }
     node = node->nd_body;
     while (node) {
-      add_line_numbers(self, node, ary);
+      ln_eval(self, node, ary);
       if (nd_type(node) == NODE_WHEN) {                 /* when */
 	node = node->nd_next;
       } else {
@@ -185,24 +203,26 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
 
   case NODE_WHILE:
   case NODE_UNTIL:
-    add_line_numbers(self, node->nd_cond, ary);
+    /* Doesn't follow eval.c */
+    ln_eval(self, node->nd_cond, ary);
     if (node->nd_body) {
-      add_line_numbers(self, node->nd_body, ary);
+      ln_eval(self, node->nd_body, ary);
     }
     break;
 
   case NODE_BLOCK_PASS:
-    add_line_numbers(self, node->nd_body, ary);
-    add_line_numbers(self, node->nd_iter, ary);
+    /*** result = block_pass(self, node); ***/
+    ln_eval(self, node->nd_body, ary);
+    ln_eval(self, node->nd_iter, ary);
     break;
 
   case NODE_ITER:
   case NODE_FOR:
-    add_line_numbers(self, node->nd_iter, ary);
+    ln_eval(self, node->nd_iter, ary);
     if (node->nd_var != (NODE *)1
         && node->nd_var != (NODE *)2
         && node->nd_var != NULL) {
-      add_line_numbers(self, node->nd_var, ary);
+      ln_eval(self, node->nd_var, ary);
     } 
     node = node->nd_body;
     goto again;
@@ -212,13 +232,13 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
   case NODE_NEXT:
   case NODE_YIELD:
     if (node->nd_stts)
-      add_line_numbers(self, current, node->nd_stts);
+      ln_eval(self, current, node->nd_stts);
     break;
 
   case NODE_RESCUE:
-      add_line_numbers(self, current, node->nd_1st);
-      add_line_numbers(self, current, node->nd_2nd);
-      add_line_numbers(self, current, node->nd_3rd);
+      ln_eval(self, current, node->nd_1st);
+      ln_eval(self, current, node->nd_2nd);
+      ln_eval(self, current, node->nd_3rd);
     break;
 
   /*
@@ -230,44 +250,52 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
 
   case NODE_RESBODY:
       if (node->nd_3rd) {
-        add_line_numbers(self, current, node->nd_3rd);
+        ln_eval(self, current, node->nd_3rd);
       } else {
         rb_ary_push(current, Qnil);
       }
-      add_line_numbers(self, current, node->nd_2nd);
-      add_line_numbers(self, current, node->nd_1st);
+      ln_eval(self, current, node->nd_2nd);
+      ln_eval(self, current, node->nd_1st);
     break;
 
   case NODE_ENSURE:
-    add_line_numbers(self, current, node->nd_head);
+    ln_eval(self, current, node->nd_head);
     if (node->nd_ensr) {
-      add_line_numbers(self, current, node->nd_ensr);
+      ln_eval(self, current, node->nd_ensr);
     }
     break;
 
   case NODE_AND:
   case NODE_OR:
-    add_line_numbers(self, current, node->nd_1st);
-    add_line_numbers(self, current, node->nd_2nd);
+    ln_eval(self, current, node->nd_1st);
+    ln_eval(self, current, node->nd_2nd);
     break;
 
+#endif
+  case NODE_NOT:
+    /*** if (RTEST(rb_eval(self, node->nd_body))) result = Qfalse;
+       else result = Qtrue; ***/
+    ln_eval(self, node->nd_body, ary); 
+    break;
+
+#ifdef FINISHED
   case NODE_DOT2:
   case NODE_DOT3:
   case NODE_FLIP2:
   case NODE_FLIP3:
-    add_line_numbers(self, current, node->nd_beg);
-    add_line_numbers(self, current, node->nd_end);
+    ln_eval(self, current, node->nd_beg);
+    ln_eval(self, current, node->nd_end);
     break;
 
   case NODE_RETURN:
     if (node->nd_stts)
-      add_line_numbers(self, current, node->nd_stts);
+      ln_eval(self, current, node->nd_stts);
     break;
 
   case NODE_ARGSCAT:
   case NODE_ARGSPUSH:
-    add_line_numbers(self, current, node->nd_head);
-    add_line_numbers(self, current, node->nd_body);
+    ln_eval(self, current, node->nd_head);
+    ln_eval(self, current, node->nd_body);
     break;
 #endif
 
@@ -275,14 +303,14 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
   case NODE_FCALL:
   case NODE_VCALL:
     if (nd_type(node) != NODE_FCALL)
-      add_line_numbers(self, node->nd_recv, ary);
+      ln_eval(self, node->nd_recv, ary);
     if (node->nd_args || nd_type(node) != NODE_FCALL)
-      add_line_numbers(self, node->nd_args, ary);
+      ln_eval(self, node->nd_args, ary);
     break;
 
 #ifdef FINISHED
   case NODE_SUPER:
-    add_line_numbers(self, current, node->nd_args);
+    ln_eval(self, current, node->nd_args);
     break;
 
   case NODE_BMETHOD:
@@ -292,9 +320,9 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
       if (data->var == 0 || data->var == (NODE *)1 || data->var == (NODE *)2) {
         rb_ary_push(current, Qnil);
       } else {
-        add_line_numbers(self, current, data->var);
+        ln_eval(self, current, data->var);
       }
-      add_line_numbers(self, current, data->body);
+      ln_eval(self, current, data->body);
       break;
     }
     break;
@@ -305,26 +333,26 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
       struct METHOD *data;
       Data_Get_Struct(node->nd_cval, struct METHOD, data);
       rb_ary_push(current, ID2SYM(data->id));
-      add_line_numbers(self, current, data->body);
+      ln_eval(self, current, data->body);
       break;
     }
 #endif
 
   case NODE_METHOD:
-    add_line_numbers(self, current, node->nd_3rd);
+    ln_eval(self, current, node->nd_3rd);
     break;
 
   case NODE_SCOPE:
-    add_line_numbers(self, current, node->nd_next);
+    ln_eval(self, current, node->nd_next);
     break;
 
   case NODE_OP_ASGN1:
-    add_line_numbers(self, current, node->nd_recv);
+    ln_eval(self, current, node->nd_recv);
 #if RUBY_VERSION_CODE < 185
-    add_line_numbers(self, current, node->nd_args->nd_next);
+    ln_eval(self, current, node->nd_args->nd_next);
     rb_ary_pop(rb_ary_entry(current, -1)); /* no idea why I need this */
 #else
-    add_line_numbers(self, current, node->nd_args->nd_2nd);
+    ln_eval(self, current, node->nd_args->nd_2nd);
 #endif
     switch (node->nd_mid) {
     case 0:
@@ -337,11 +365,11 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
       rb_ary_push(current, ID2SYM(node->nd_mid));
       break;
     }
-    add_line_numbers(self, current, node->nd_args->nd_head);
+    ln_eval(self, current, node->nd_args->nd_head);
     break;
 
   case NODE_OP_ASGN2:
-    add_line_numbers(self, current, node->nd_recv);
+    ln_eval(self, current, node->nd_recv);
     rb_ary_push(current, ID2SYM(node->nd_next->nd_aid));
 
     switch (node->nd_next->nd_mid) {
@@ -356,25 +384,25 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
       break;
     }
 
-    add_line_numbers(self, current, node->nd_value);
+    ln_eval(self, current, node->nd_value);
     break;
 
   case NODE_OP_ASGN_AND:
   case NODE_OP_ASGN_OR:
-    add_line_numbers(self, current, node->nd_head);
-    add_line_numbers(self, current, node->nd_value);
+    ln_eval(self, current, node->nd_head);
+    ln_eval(self, current, node->nd_value);
     break;
 
   case NODE_MASGN:
-    add_line_numbers(self, current, node->nd_head);
+    ln_eval(self, current, node->nd_head);
     if (node->nd_args) {
       if (node->nd_args != (NODE *)-1) {
-        add_line_numbers(self, current, node->nd_args);
+        ln_eval(self, current, node->nd_args);
       } else {
         rb_ary_push(current, wrap_into_node("splat", 0));
       }
     }
-    add_line_numbers(self, current, node->nd_value);
+    ln_eval(self, current, node->nd_value);
     break;
 #endif
 
@@ -386,7 +414,7 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
   case NODE_CDECL:
   case NODE_CVDECL:
   case NODE_CVASGN:
-    add_line_numbers(self, node->nd_value, ary);
+    ln_eval(self, node->nd_value, ary);
     break;
 
 #ifdef FINISHED
@@ -404,8 +432,8 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
     rb_ary_push(current, wrap_into_node("lit", ID2SYM(node->u2.id)));
     rb_ary_push(current, wrap_into_node("lit", ID2SYM(node->u1.id)));
 #else
-    add_line_numbers(self, current, node->nd_1st);
-    add_line_numbers(self, current, node->nd_2nd);
+    ln_eval(self, current, node->nd_1st);
+    ln_eval(self, current, node->nd_2nd);
 #endif
     break;
 
@@ -413,7 +441,7 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
 #if RUBY_VERSION_CODE < 185
     rb_ary_push(current, wrap_into_node("lit", ID2SYM(node->u2.id)));
 #else
-    add_line_numbers(self, current, node->nd_value);
+    ln_eval(self, current, node->nd_value);
 #endif
     break;
 
@@ -427,11 +455,11 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
 
       list = node->nd_head;
       while (list) {
-        add_line_numbers(self, current, list->nd_head);
+        ln_eval(self, current, list->nd_head);
         list = list->nd_next;
         if (list == 0)
           rb_bug("odd number list for Hash");
-        add_line_numbers(self, current, list->nd_head);
+        ln_eval(self, current, list->nd_head);
         list = list->nd_next;
       }
     }
@@ -450,13 +478,13 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
         if (list->nd_head) {
           switch (nd_type(list->nd_head)) {
           case NODE_STR:
-            add_line_numbers(self, list->nd_head, ary);
+            ln_eval(self, list->nd_head, ary);
             break;
           case NODE_EVSTR:
-            add_line_numbers(self, list->nd_head, ary);
+            ln_eval(self, list->nd_head, ary);
             break;
           default:
-            add_line_numbers(self, list->nd_head, ary);
+            ln_eval(self, list->nd_head, ary);
             break;
           }
         }
@@ -470,9 +498,9 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
   case NODE_DEFS:
     if (node->nd_defn) {
       if (nd_type(node) == NODE_DEFS)
-        add_line_numbers(self, current, node->nd_recv);
+        ln_eval(self, current, node->nd_recv);
       rb_ary_push(current, ID2SYM(node->nd_mid));
-      add_line_numbers(self, current, node->nd_defn);
+      ln_eval(self, current, node->nd_defn);
     }
     break;
 
@@ -481,22 +509,22 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
     rb_ary_push(current, ID2SYM((ID)node->nd_cpath->nd_mid));
     if (nd_type(node) == NODE_CLASS) {
       if (node->nd_super) {
-        add_line_numbers(self, current, node->nd_super);
+        ln_eval(self, current, node->nd_super);
       } else {
         rb_ary_push(current, Qnil);
       }
     }
-    add_line_numbers(self, current, node->nd_body);
+    ln_eval(self, current, node->nd_body);
     break;
 
   case NODE_SCLASS:
-    add_line_numbers(self, current, node->nd_recv);
-    add_line_numbers(self, current, node->nd_body);
+    ln_eval(self, current, node->nd_recv);
+    ln_eval(self, current, node->nd_body);
     break;
 
   case NODE_ARGS: {
     if (node->nd_opt) {
-      add_line_numbers(self, current, node->nd_opt);
+      ln_eval(self, current, node->nd_opt);
     }
   }  break;
 
@@ -513,14 +541,14 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
   case NODE_XSTR:             /* u1    (%x{ls}) */
     /* Issues rb_funcall(self, '`'...). So I think we have to 
      register a call event. */
-    ADD_EVENT_CALL(node);
+    EVENT_CALL(node);
     break;
     
   case NODE_LIT:
     break;
 
   case NODE_NEWLINE:
-    ADD_EVENT_LINE(node);
+    EVENT_LINE(node);
     node = node->nd_next;
     goto again;
 
@@ -541,7 +569,7 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
     break;
 
   case NODE_COLON2:
-    add_line_numbers(self, current, node->nd_head);
+    ln_eval(self, current, node->nd_head);
     rb_ary_push(current, ID2SYM(node->nd_mid));
     break;
 
@@ -559,18 +587,18 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
   case NODE_SPLAT:
   case NODE_TO_ARY:
   case NODE_SVALUE:             /* a = b, c */
-    add_line_numbers(self, current, node->nd_head);
+    ln_eval(self, current, node->nd_head);
     break;
 
   case NODE_ATTRASGN:           /* literal.meth = y u1 u2 u3 */
     /* node id node */
     if (node->nd_1st == RNODE(1)) {
-      add_line_numbers(self, current, NEW_SELF());
+      ln_eval(self, current, NEW_SELF());
     } else {
-      add_line_numbers(self, current, node->nd_1st);
+      ln_eval(self, current, node->nd_1st);
     }
     rb_ary_push(current, ID2SYM(node->u2.id));
-    add_line_numbers(self, current, node->nd_3rd);
+    ln_eval(self, current, node->nd_3rd);
     break;
 #endif
 
@@ -578,7 +606,7 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
     {
       long int i = node->nd_alen;
       for (i=0; node; node=node->nd_next) {
-        add_line_numbers(self, node->nd_head, ary);
+        ln_eval(self, node->nd_head, ary);
       }
     }
     break;
@@ -587,7 +615,7 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
     break;
 
   case NODE_EVSTR: /* eval of a string */
-    add_line_numbers(self, node->nd_2nd, ary);
+    ln_eval(self, node->nd_2nd, ary);
     break;
 
 #ifdef FINISHED
@@ -635,7 +663,7 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
       fprintf(stderr, fmt, "]\n");
     }
 
-} /* add_line_numbers block */
+} /* ln_eval */
 
 /* Return a list of trace hook line numbers for the string in Ruby source src*/
 static VALUE 
@@ -669,7 +697,7 @@ lnums_for_str(VALUE self, VALUE src) {
   if (RTEST(ruby_debug)) {
     indent_level = 0;
   }
-  add_line_numbers(self, node, result);
+  ln_eval(self, node, result);
   return result;
 }
 
