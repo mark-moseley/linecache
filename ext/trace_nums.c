@@ -63,7 +63,6 @@ static
 void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
   NODE * volatile contnode = 0;
   NODE * volatile node = n;
-  VALUE current;
 
   if (RTEST(ruby_debug)) {
     char fmt[30] = { '\0', };
@@ -76,6 +75,7 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
   if (!node) RETURN;
 
   if (RTEST(ruby_debug)) {
+    NODE *r = RNODE(node); /* For debugging */
     fprintf(stderr, "%s ", NODE2NAME[nd_type(node)]);
   }
 
@@ -147,48 +147,41 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
     break;
 
   case NODE_WHEN:
-    while (node) {
-      NODE *tag = node->nd_head;
-      if (nd_type(node) != NODE_WHEN) goto again;
-      while (tag) {
-	ADD_EVENT_LINE(tag);
-	if (tag->nd_head && nd_type(tag->nd_head) == NODE_WHEN) {
-	  add_line_numbers(self, tag->nd_head->nd_head, ary); /* args */
-	  tag = tag->nd_next;
-	  continue;
-	}
-	add_line_numbers(self, tag->nd_head, ary); /* args */
-	add_line_numbers(self, tag->nd_body, ary);
-	tag = tag->nd_next;
-      }
-      node = node->nd_next;
+    when_level++;
+    if (!inside_case_args && case_level < when_level) { 
+      /* when without case, ie, no expr in case */
+      if (when_level > 0) when_level--;
+      node = NEW_CASE(0, node);
+      goto again;
     }
-    RETURN;
+    inside_case_args++;
+    ADD_EVENT_LINE(node->nd_head);
+    add_line_numbers(self, node->nd_head, ary); /* args */
+    inside_case_args--;
+
+    if (node->nd_body) {
+      add_line_numbers(self, node->nd_body, ary); /* body */
+    }
+
+    if (when_level > 0) when_level--;
+    break;
 
   case NODE_CASE:
-    {
-      add_line_numbers(self, node->nd_head, ary);
-      node = node->nd_body;
-      while (node) {
-	NODE *tag;
-	if (nd_type(node) != NODE_WHEN) {
-	  goto again;
-	}
-	tag = node->nd_head;
-	while (tag) {
-	  ADD_EVENT_LINE(tag);
-	  if (tag->nd_head && nd_type(tag->nd_head) == NODE_WHEN) {
-	    add_line_numbers(self, tag->nd_head->nd_head, ary); /* args */
-	    tag = tag->nd_next;
-	  }
-	  add_line_numbers(self, tag->nd_head, ary);
-	  tag = tag->nd_next;
-	}
-	add_line_numbers(self, node, ary);
-	node = node->nd_next;
-      }
+    case_level++;
+    if (node->nd_head != NULL) {
+      add_line_numbers(self, node->nd_head, ary); /* expr */
     }
-    RETURN;
+    node = node->nd_body;
+    while (node) {
+      add_line_numbers(self, node, ary);
+      if (nd_type(node) == NODE_WHEN) {                 /* when */
+	node = node->nd_next;
+      } else {
+	break;                                          /* else */
+	}
+    }
+    case_level--;
+    break;
 
   case NODE_WHILE:
   case NODE_UNTIL:
@@ -276,17 +269,18 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
     add_line_numbers(self, current, node->nd_head);
     add_line_numbers(self, current, node->nd_body);
     break;
+#endif
 
   case NODE_CALL:
   case NODE_FCALL:
   case NODE_VCALL:
     if (nd_type(node) != NODE_FCALL)
-      add_line_numbers(self, current, node->nd_recv);
-    rb_ary_push(current, ID2SYM(node->nd_mid));
+      add_line_numbers(self, node->nd_recv, ary);
     if (node->nd_args || nd_type(node) != NODE_FCALL)
-      add_line_numbers(self, current, node->nd_args);
+      add_line_numbers(self, node->nd_args, ary);
     break;
 
+#ifdef FINISHED
   case NODE_SUPER:
     add_line_numbers(self, current, node->nd_args);
     break;
@@ -443,12 +437,7 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
     }
     break;
 
-  case NODE_ARRAY:
-      while (node) {
-        add_line_numbers(self, current, node->nd_head);
-        node = node->nd_next;
-      }
-    break;
+#endif
 
   case NODE_DSTR:
   case NODE_DSYM:
@@ -457,33 +446,26 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
   case NODE_DREGX_ONCE:
     {
       NODE *list = node->nd_next;
-      rb_ary_push(current, rb_str_new3(node->nd_lit));
       while (list) {
         if (list->nd_head) {
           switch (nd_type(list->nd_head)) {
           case NODE_STR:
-            add_line_numbers(self, current, list->nd_head);
+            add_line_numbers(self, list->nd_head, ary);
             break;
           case NODE_EVSTR:
-            add_line_numbers(self, current, list->nd_head);
+            add_line_numbers(self, list->nd_head, ary);
             break;
           default:
-            add_line_numbers(self, current, list->nd_head);
+            add_line_numbers(self, list->nd_head, ary);
             break;
           }
         }
         list = list->nd_next;
       }
-      switch (nd_type(node)) {
-      case NODE_DREGX:
-      case NODE_DREGX_ONCE:
-        if (node->nd_cflag) {
-          rb_ary_push(current, INT2FIX(node->nd_cflag));
-        }
-      }
     }
     break;
 
+#ifdef FINISHED
   case NODE_DEFN:
   case NODE_DEFS:
     if (node->nd_defn) {
@@ -592,14 +574,23 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
     break;
 #endif
 
+  case NODE_ARRAY:
+    {
+      long int i = node->nd_alen;
+      for (i=0; node; node=node->nd_next) {
+        add_line_numbers(self, node->nd_head, ary);
+      }
+    }
+    break;
+
   case NODE_STR:              /* u1 */
     break;
 
-#ifdef FINISHED
-  case NODE_EVSTR:
-    add_line_numbers(self, current, node->nd_2nd);
+  case NODE_EVSTR: /* eval of a string */
+    add_line_numbers(self, node->nd_2nd, ary);
     break;
 
+#ifdef FINISHED
   case NODE_CFUNC:
   case NODE_IFUNC:
     rb_ary_push(current, INT2NUM((long)node->nd_cfnc));
