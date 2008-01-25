@@ -49,9 +49,12 @@ struct BLOCK {
 #define ADD_EVENT_LINE(node)			\
   rb_ary_push(ary, INT2NUM(nd_line(node)))
 
+#ifdef FINISHED
 #define ADD_EVENT_CALL(node)			\
   rb_ary_push(ary, INT2NUM(nd_line(node)))
-
+#else
+#define ADD_EVENT_CALL(node)
+#endif
 
 /* Used just in debugging. */
 static indent_level = 0;
@@ -69,7 +72,7 @@ void add_line_numbers(VALUE self, NODE * n, VALUE ary) {
     indent_level += 2;
   }
 
-again:
+ again:
   if (!node) RETURN;
 
   if (RTEST(ruby_debug)) {
@@ -94,8 +97,6 @@ again:
     /* begin .. end without clauses */
   case NODE_BEGIN:
     /* node for speed-up(top-level loop for -n/-p) */
-  case NODE_OPT_N:
-  case NODE_NOT:
     node = node->nd_body;
     goto again;
 
@@ -105,18 +106,23 @@ again:
 
     /* nodes for speed-up(literal match) */
   case NODE_MATCH2:
-    add_line_numbers(self, node->nd_recv, ary); /* r */
-    node = node->nd_value; /* l */
-    goto again;
+    add_line_numbers(self, node->nd_recv, ary); 
+    add_line_numbers(self, node->nd_value, ary); 
+    break;
 
-  case NODE_MATCH3:
-    add_line_numbers(self, node->nd_recv, ary);  /* r */
-    /* It is possible that l can be a function call which
+  case NODE_MATCH3: /* z =~ /"#{var}"/ for example */
+    add_line_numbers(self, node->nd_recv, ary);  /* receiver */
+    /* It is possible that value can be a function call which
        can trigger an call event. So to be conservative, 
        we have to add a line number here. */
     ADD_EVENT_CALL(node);
-    node = node->nd_value; /* l */
-    goto again;
+    add_line_numbers(self, node->nd_value, ary); 
+    break;
+
+  case NODE_OPT_N:
+  case NODE_NOT:
+    add_line_numbers(self, node->nd_body, ary); 
+    break;
 
   case NODE_SELF:
   case NODE_NIL:
@@ -188,15 +194,14 @@ again:
   case NODE_UNTIL:
     add_line_numbers(self, node->nd_cond, ary);
     if (node->nd_body) {
-      node = node->nd_body;
-      goto again;
+      add_line_numbers(self, node->nd_body, ary);
     }
     break;
 
   case NODE_BLOCK_PASS:
     add_line_numbers(self, node->nd_body, ary);
-    node = node->nd_iter;
-    goto again;
+    add_line_numbers(self, node->nd_iter, ary);
+    break;
 
   case NODE_ITER:
   case NODE_FOR:
@@ -377,19 +382,20 @@ again:
     }
     add_line_numbers(self, current, node->nd_value);
     break;
+#endif
 
   case NODE_LASGN:
-  case NODE_IASGN:
   case NODE_DASGN:
   case NODE_DASGN_CURR:
-  case NODE_CDECL:
-  case NODE_CVASGN:
-  case NODE_CVDECL:
   case NODE_GASGN:
-    rb_ary_push(current, ID2SYM(node->nd_vid));
-    add_line_numbers(self, current, node->nd_value);
+  case NODE_IASGN:
+  case NODE_CDECL:
+  case NODE_CVDECL:
+  case NODE_CVASGN:
+    add_line_numbers(self, node->nd_value, ary);
     break;
 
+#ifdef FINISHED
   case NODE_VALIAS:           /* u1 u2 (alias $global $global2) */
 #if RUBY_VERSION_CODE < 185
     rb_ary_push(current, ID2SYM(node->u2.id));
@@ -512,17 +518,16 @@ again:
     }
   }  break;
 
+#endif
   case NODE_LVAR:
   case NODE_DVAR:
-  case NODE_IVAR:
-  case NODE_CVAR:
   case NODE_GVAR:
+  case NODE_IVAR:
   case NODE_CONST:
+  case NODE_CVAR:
   case NODE_ATTRSET:
-    rb_ary_push(current, ID2SYM(node->nd_vid));
     break;
 
-#endif
   case NODE_XSTR:             /* u1    (%x{ls}) */
     /* Issues rb_funcall(self, '`'...). So I think we have to 
      register a call event. */
@@ -585,14 +590,12 @@ again:
     rb_ary_push(current, ID2SYM(node->u2.id));
     add_line_numbers(self, current, node->nd_3rd);
     break;
+#endif
 
   case NODE_STR:              /* u1 */
-    rb_ary_push(current, node->nd_lit);
-    if (node->nd_cflag) {
-      rb_ary_push(current, INT2FIX(node->nd_cflag));
-    }
     break;
 
+#ifdef FINISHED
   case NODE_EVSTR:
     add_line_numbers(self, current, node->nd_2nd);
     break;

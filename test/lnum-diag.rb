@@ -22,7 +22,7 @@ def dump_file(file, print_file=false)
     puts '=' * 80
     tracer = Tracer.new
     tracer.add_filter lambda {|event, f, line, id, binding, klass|
-      __FILE__ != f
+      __FILE__ != f && event == 'line'
     }
     tracer.on{load(file)}
   else
