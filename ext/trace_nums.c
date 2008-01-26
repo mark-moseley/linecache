@@ -346,6 +346,13 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     ln_eval(self, node->nd_args, ary);
     break;
 
+  case NODE_ZSUPER:
+    break;
+
+  case NODE_SCOPE:
+    ln_eval(self, node->nd_next, ary);
+    break;
+
 #ifdef FINISHED
   case NODE_BMETHOD:
     {
@@ -374,10 +381,6 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
 
   case NODE_METHOD:
     ln_eval(self, current, node->nd_3rd);
-    break;
-
-  case NODE_SCOPE:
-    ln_eval(self, current, node->nd_next);
     break;
 
   case NODE_OP_ASGN1:
@@ -452,33 +455,6 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     break;
 
 #ifdef FINISHED
-  case NODE_VALIAS:           /* u1 u2 (alias $global $global2) */
-#if RUBY_VERSION_CODE < 185
-    rb_ary_push(current, ID2SYM(node->u2.id));
-    rb_ary_push(current, ID2SYM(node->u1.id));
-#else
-    rb_ary_push(current, ID2SYM(node->u1.id));
-    rb_ary_push(current, ID2SYM(node->u2.id));
-#endif
-    break;
-  case NODE_ALIAS:            /* u1 u2 (alias :blah :blah2) */
-#if RUBY_VERSION_CODE < 185
-    rb_ary_push(current, wrap_into_node("lit", ID2SYM(node->u2.id)));
-    rb_ary_push(current, wrap_into_node("lit", ID2SYM(node->u1.id)));
-#else
-    ln_eval(self, current, node->nd_1st);
-    ln_eval(self, current, node->nd_2nd);
-#endif
-    break;
-
-  case NODE_UNDEF:            /* u2    (undef name, ...) */
-#if RUBY_VERSION_CODE < 185
-    rb_ary_push(current, wrap_into_node("lit", ID2SYM(node->u2.id)));
-#else
-    ln_eval(self, current, node->nd_value);
-#endif
-    break;
-
   case NODE_COLON3:           /* u2    (::OUTER_CONST) */
     rb_ary_push(current, ID2SYM(node->u2.id));
     break;
@@ -527,41 +503,67 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     }
     break;
 
-#ifdef FINISHED
   case NODE_DEFN:
+    break;
+
   case NODE_DEFS:
     if (node->nd_defn) {
-      if (nd_type(node) == NODE_DEFS)
-        ln_eval(self, current, node->nd_recv);
-      rb_ary_push(current, ID2SYM(node->nd_mid));
-      ln_eval(self, current, node->nd_defn);
+      ln_eval(self, node->nd_recv, ary);
     }
     break;
 
+  case NODE_UNDEF:            /* u2    (undef name, ...) */
+#if RUBY_VERSION_CODE >= 185
+    /*** ... 
+	 rb_undef(ruby_class, rb_to_id(rb_eval(self, node->u2.node))); 
+	 ...
+    ***/
+    ln_eval(self, node->u2.node, ary);
+#endif
+    break;
+
+#ifdef FINISHED
+  case NODE_ALIAS:            /* u1 u2 (alias :blah :blah2) */
+#if RUBY_VERSION_CODE < 185
+    rb_ary_push(current, wrap_into_node("lit", ID2SYM(node->u2.id)));
+    rb_ary_push(current, wrap_into_node("lit", ID2SYM(node->u1.id)));
+#else
+    ln_eval(self, current, node->nd_1st);
+    ln_eval(self, current, node->nd_2nd);
+#endif
+    break;
+  case NODE_VALIAS:           /* u1 u2 (alias $global $global2) */
+#if RUBY_VERSION_CODE < 185
+    rb_ary_push(current, ID2SYM(node->u2.id));
+    rb_ary_push(current, ID2SYM(node->u1.id));
+#else
+    rb_ary_push(current, ID2SYM(node->u1.id));
+    rb_ary_push(current, ID2SYM(node->u2.id));
+#endif
+    break;
+#endif /*FINISHED*/
+
   case NODE_CLASS:
-  case NODE_MODULE:
-    rb_ary_push(current, ID2SYM((ID)node->nd_cpath->nd_mid));
-    if (nd_type(node) == NODE_CLASS) {
-      if (node->nd_super) {
-        ln_eval(self, current, node->nd_super);
-      } else {
-        rb_ary_push(current, Qnil);
-      }
+    if (node->nd_super) {
+      ln_eval(self, node->nd_super, ary);
     }
-    ln_eval(self, current, node->nd_body);
+    ln_eval(self, node->nd_body, ary);
+    break;
+
+  case NODE_MODULE:
+    ln_eval(self, node->nd_body, ary);
     break;
 
   case NODE_SCLASS:
-    ln_eval(self, current, node->nd_recv);
-    ln_eval(self, current, node->nd_body);
+    ln_eval(self, node->nd_recv, ary);
+    ln_eval(self, node->nd_body, ary);
     break;
 
   case NODE_ARGS: {
     if (node->nd_opt) {
-      ln_eval(self, current, node->nd_opt);
+      ln_eval(self, node->nd_opt, ary);
     }
   }  break;
-#endif /*FINISHED*/
 
   case NODE_LVAR:
   case NODE_DVAR:
@@ -613,7 +615,6 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
   case NODE_SELF:
   case NODE_TRUE:
   case NODE_ZARRAY:
-  case NODE_ZSUPER:
   case NODE_ATTRASGN:           /* literal.meth = y u1 u2 u3 */
     /* node id node */
     if (node->nd_1st == RNODE(1)) {
