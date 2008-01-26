@@ -3,7 +3,7 @@
 require 'test/unit'
 
 # require 'rubygems'
-# require 'ruby-debug'; Debugger.start
+# require 'ruby-debug'; Debugger.init
 
 # Test TraceLineNumbers module
 class TestLineNumbers2 < Test::Unit::TestCase
