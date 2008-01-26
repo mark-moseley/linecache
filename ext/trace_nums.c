@@ -227,18 +227,76 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     node = node->nd_body;
     goto again;
 
-#ifdef FINISHED
   case NODE_BREAK:
+    /* break_jump(rb_eval(self, node->nd_stts)); */
+    ln_eval(self, node->nd_stts, ary);
+    break;
+    
   case NODE_NEXT:
+    /*** CHECK_INTS;
+	 next_jump(rb_eval(self, node->nd_stts)); ***/
+    ln_eval(self, node->nd_stts, ary);
+    break;
+
+  case NODE_REDO:
+    /*** CHECK_INTS;
+	 JUMP_TAG(TAG_REDO); ***/
+    break;
+
+  case NODE_RETRY:
+    /*** CHECK_INTS;
+	 JUMP_TAG(TAG_RETRY); ***/
+    break;
+
+  case NODE_SPLAT:
+    /*** result = splat_value(rb_eval(self, node->nd_head)); ***/
+    ln_eval(self, node->nd_head, ary);
+    break;
+
+  case NODE_TO_ARY:
+    /*** result = rb_ary_to_ary(rb_eval(self, node->nd_head)); ***/
+    ln_eval(self, node->nd_head, ary);
+    break;
+
+  case NODE_SVALUE:             /* a = b, c */
+    /***
+	result = avalue_splat(rb_eval(self, node->nd_head));
+	if (result == Qundef) result = Qnil; ***/
+    ln_eval(self, node->nd_head, ary);
+    break;
+
   case NODE_YIELD:
-    if (node->nd_stts)
-      ln_eval(self, current, node->nd_stts);
+    if (node->nd_head) {
+      /*** result = rb_eval(self, node->nd_head);
+	   ruby_current_node = node; else ... ***/
+      ln_eval(self, node->nd_head, ary);
+    }
     break;
 
   case NODE_RESCUE:
-      ln_eval(self, current, node->nd_1st);
-      ln_eval(self, current, node->nd_2nd);
-      ln_eval(self, current, node->nd_3rd);
+    /* Follow ruby_parse.c and prey for the best. */
+    ln_eval(self, node->nd_1st, ary);
+    ln_eval(self, node->nd_2nd, ary);
+    ln_eval(self, node->nd_3rd, ary);
+    break;
+
+  case NODE_ENSURE:
+    ln_eval(self, node->nd_head, ary);
+    if (node->nd_ensr) {
+      ln_eval(self, node->nd_ensr, ary);
+    }
+    break;
+
+  case NODE_AND:
+  case NODE_OR:
+    ln_eval(self, node->nd_1st, ary);
+    ln_eval(self, node->nd_2nd, ary);
+    break;
+
+  case NODE_NOT:
+    /*** if (RTEST(rb_eval(self, node->nd_body))) result = Qfalse;
+       else result = Qtrue; ***/
+    ln_eval(self, node->nd_body, ary); 
     break;
 
   /*
@@ -246,58 +304,34 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
   // begin stmt rescue exception => var; stmt; [rescue e2 => v2; s2;]* end
   // stmt rescue stmt
   // a = b rescue c
+  // NODE_RESBODY doesn't appear in 1.8.6's rb_eval
   */
-
   case NODE_RESBODY:
       if (node->nd_3rd) {
-        ln_eval(self, current, node->nd_3rd);
-      } else {
-        rb_ary_push(current, Qnil);
+        ln_eval(self, node->nd_3rd, ary);
       }
-      ln_eval(self, current, node->nd_2nd);
-      ln_eval(self, current, node->nd_1st);
+      ln_eval(self, node->nd_2nd, ary);
+      ln_eval(self, node->nd_1st, ary);
     break;
 
-  case NODE_ENSURE:
-    ln_eval(self, current, node->nd_head);
-    if (node->nd_ensr) {
-      ln_eval(self, current, node->nd_ensr);
-    }
-    break;
-
-  case NODE_AND:
-  case NODE_OR:
-    ln_eval(self, current, node->nd_1st);
-    ln_eval(self, current, node->nd_2nd);
-    break;
-
-#endif
-  case NODE_NOT:
-    /*** if (RTEST(rb_eval(self, node->nd_body))) result = Qfalse;
-       else result = Qtrue; ***/
-    ln_eval(self, node->nd_body, ary); 
-    break;
-
-#ifdef FINISHED
   case NODE_DOT2:
   case NODE_DOT3:
   case NODE_FLIP2:
   case NODE_FLIP3:
-    ln_eval(self, current, node->nd_beg);
-    ln_eval(self, current, node->nd_end);
+    ln_eval(self, node->nd_beg, ary);
+    ln_eval(self, node->nd_end, ary);
     break;
 
   case NODE_RETURN:
     if (node->nd_stts)
-      ln_eval(self, current, node->nd_stts);
+      ln_eval(self, node->nd_stts, ary);
     break;
 
   case NODE_ARGSCAT:
   case NODE_ARGSPUSH:
-    ln_eval(self, current, node->nd_head);
-    ln_eval(self, current, node->nd_body);
+    ln_eval(self, node->nd_head, ary);
+    ln_eval(self, node->nd_body, ary);
     break;
-#endif
 
   case NODE_CALL:
   case NODE_FCALL:
@@ -308,11 +342,11 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
       ln_eval(self, node->nd_args, ary);
     break;
 
-#ifdef FINISHED
   case NODE_SUPER:
-    ln_eval(self, current, node->nd_args);
+    ln_eval(self, node->nd_args, ary);
     break;
 
+#ifdef FINISHED
   case NODE_BMETHOD:
     {
       struct BLOCK *data;
@@ -404,7 +438,7 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     }
     ln_eval(self, current, node->nd_value);
     break;
-#endif
+#endif /*FINISHED*/
 
   case NODE_LASGN:
   case NODE_DASGN:
@@ -465,7 +499,7 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     }
     break;
 
-#endif
+#endif /*FINISHED*/
 
   case NODE_DSTR:
   case NODE_DSYM:
@@ -527,8 +561,8 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
       ln_eval(self, current, node->nd_opt);
     }
   }  break;
+#endif /*FINISHED*/
 
-#endif
   case NODE_LVAR:
   case NODE_DVAR:
   case NODE_GVAR:
@@ -574,22 +608,12 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     break;
 
   /* these nodes are empty and do not require extra work: */
-  case NODE_RETRY:
   case NODE_FALSE:
   case NODE_NIL:
   case NODE_SELF:
   case NODE_TRUE:
   case NODE_ZARRAY:
   case NODE_ZSUPER:
-  case NODE_REDO:
-    break;
-
-  case NODE_SPLAT:
-  case NODE_TO_ARY:
-  case NODE_SVALUE:             /* a = b, c */
-    ln_eval(self, current, node->nd_head);
-    break;
-
   case NODE_ATTRASGN:           /* literal.meth = y u1 u2 u3 */
     /* node id node */
     if (node->nd_1st == RNODE(1)) {
@@ -600,7 +624,7 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     rb_ary_push(current, ID2SYM(node->u2.id));
     ln_eval(self, current, node->nd_3rd);
     break;
-#endif
+#endif /*FINISHED*/
 
   case NODE_ARRAY:
     {
@@ -641,7 +665,7 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
   /* #defines: */
   /* case NODE_LMASK: */
   /* case NODE_LSHIFT: */
-#endif /* FINISHED */
+#endif /*FINISHED*/
   default:
     rb_warn("Unhandled node %s", NODE2NAME[nd_type(node)]);
     if (RNODE(node)->u1.node != NULL) rb_warning("unhandled u1 value");
