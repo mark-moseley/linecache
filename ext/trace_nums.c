@@ -78,13 +78,10 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
 
   switch (nd_type(node)) {
   case NODE_BLOCK:
-    if (contnode) {
-      EVENT_LINE(node);
-      break;
+    while (node) {
+      ln_eval(self, node->nd_head, ary);
+      node = node->nd_next;
     }
-    contnode = node->nd_next;
-    node = node->nd_head;
-    goto again;
 
   case NODE_POSTEXE: /* END { ... } */
     /* Nothing to do here... we are in an iter block */

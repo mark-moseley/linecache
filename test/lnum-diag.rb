@@ -9,7 +9,12 @@ require File.join(TOP_SRC_DIR, 'lib', 'tracelines.rb')
 
 def dump_file(file, opts)
   puts file
-  fp = File.open(file, 'r')
+  begin
+    fp = File.open(file, 'r')
+  rescue Errno::ENOENT
+    puts "File #{file} is not readable."
+    return
+  end
   lines = fp.read
   if opts[:print_source]
     puts '=' * 80
@@ -32,7 +37,6 @@ def dump_file(file, opts)
   expected_lnums = nil
   if opts[:expect_line]
     fp.rewind
-    fp = File.open(file, 'r')
     first_line = fp.readline.chomp
     expected_str = first_line[1..-1]
     begin
