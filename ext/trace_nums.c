@@ -9,9 +9,6 @@ VALUE mTraceLineNumbers;
 extern NODE *ruby_eval_tree_begin;
 
 #define nd_3rd   u3.node
-static unsigned case_level = 0;
-static unsigned when_level = 0;
-static unsigned inside_case_args = 0;
 
 struct METHOD {
   VALUE klass, rklass;
@@ -140,6 +137,7 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     ln_eval(self, node->nd_body, ary); 
     break;
 
+  /* These nodes are empty. */
   case NODE_SELF:
   case NODE_NIL:
   case NODE_TRUE:
@@ -162,44 +160,51 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     }
     break;
 
-  case NODE_WHEN:
-    /* Follows parse_tree.c rather than eval.c */
-    when_level++;
-    if (!inside_case_args && case_level < when_level) { 
-      /* when without case, ie, no expr in case */
-      if (when_level > 0) when_level--;
-      node = NEW_CASE(0, node);
-      goto again;
+  case NODE_WHEN: 
+    {
+      NODE *orig_node = node;
+      while (node) {
+	NODE *tag;
+	
+	if (nd_type(node) != NODE_WHEN) goto again;
+	tag = node->nd_head;
+	while (tag) {
+	  EVENT_LINE(tag);
+	  if (tag->nd_head && nd_type(tag->nd_head) == NODE_WHEN) {
+	    ln_eval(self, tag->nd_head->nd_head, ary);
+	  }
+	  tag = tag->nd_next;
+	}
+	node = node->nd_next;
+      }
+      if (orig_node->nd_body) {
+	ln_eval(self, orig_node->nd_body, ary); /* body */
+      }
+      RETURN /***(Qnil)***/ ;
     }
-    inside_case_args++;
-    EVENT_LINE(node->nd_head);
-    ln_eval(self, node->nd_head, ary); /* args */
-    inside_case_args--;
-
-    if (node->nd_body) {
-      ln_eval(self, node->nd_body, ary); /* body */
-    }
-
-    if (when_level > 0) when_level--;
-    break;
 
   case NODE_CASE:
-    /* Follows parse_tree.c rather than eval.c */
-    case_level++;
-    if (node->nd_head != NULL) {
-      ln_eval(self, node->nd_head, ary); /* expr */
-    }
+    ln_eval(self, node->nd_head, ary); /* expr */
     node = node->nd_body;
     while (node) {
-      ln_eval(self, node, ary);
-      if (nd_type(node) == NODE_WHEN) {                 /* when */
-	node = node->nd_next;
-      } else {
-	break;                                          /* else */
+      NODE *tag;
+      if (nd_type(node) != NODE_WHEN) {
+	goto again;
+      }
+      tag = node->nd_head;
+      while (tag) {
+	EVENT_LINE(tag);
+	if (tag->nd_head && nd_type(tag->nd_head) == NODE_WHEN) {
+	  ln_eval(self, tag->nd_head->nd_head, ary);
+	  tag = tag->nd_next;
+	  continue;
 	}
+	ln_eval(self, tag->nd_head, ary);
+	tag = tag->nd_next;
+      }
+      node = node->nd_next;
     }
-    case_level--;
-    break;
+    RETURN /***(Qnil)***/;
 
   case NODE_WHILE:
   case NODE_UNTIL:
@@ -333,6 +338,15 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     ln_eval(self, node->nd_body, ary);
     break;
 
+  case NODE_ATTRASGN:           /* literal.meth = y u1 u2 u3 */
+    /* node id node */
+    if (node->nd_recv == (NODE *)1) {
+      ln_eval(self, NEW_SELF(), ary);
+    } else {
+      ln_eval(self, node->nd_recv, ary);
+    }
+    ln_eval(self, node->nd_3rd, ary);
+    break;
   case NODE_CALL:
   case NODE_FCALL:
   case NODE_VCALL:
@@ -353,95 +367,36 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     ln_eval(self, node->nd_next, ary);
     break;
 
-#ifdef FINISHED
-  case NODE_BMETHOD:
-    {
-      struct BLOCK *data;
-      Data_Get_Struct(node->nd_cval, struct BLOCK, data);
-      if (data->var == 0 || data->var == (NODE *)1 || data->var == (NODE *)2) {
-        rb_ary_push(current, Qnil);
-      } else {
-        ln_eval(self, current, data->var);
-      }
-      ln_eval(self, current, data->body);
-      break;
-    }
-    break;
-
-#if RUBY_VERSION_CODE < 190
-  case NODE_DMETHOD:
-    {
-      struct METHOD *data;
-      Data_Get_Struct(node->nd_cval, struct METHOD, data);
-      rb_ary_push(current, ID2SYM(data->id));
-      ln_eval(self, current, data->body);
-      break;
-    }
-#endif
-
-  case NODE_METHOD:
-    ln_eval(self, current, node->nd_3rd);
-    break;
-
   case NODE_OP_ASGN1:
-    ln_eval(self, current, node->nd_recv);
+    ln_eval(self, node->nd_recv, ary);
 #if RUBY_VERSION_CODE < 185
-    ln_eval(self, current, node->nd_args->nd_next);
-    rb_ary_pop(rb_ary_entry(current, -1)); /* no idea why I need this */
+    ln_eval(self, node->nd_args->nd_next, ary);
 #else
-    ln_eval(self, current, node->nd_args->nd_2nd);
+    ln_eval(self, node->nd_args->nd_2nd, ary);
 #endif
-    switch (node->nd_mid) {
-    case 0:
-      rb_ary_push(current, ID2SYM(rb_intern("||")));
-      break;
-    case 1:
-      rb_ary_push(current, ID2SYM(rb_intern("&&")));
-      break;
-    default:
-      rb_ary_push(current, ID2SYM(node->nd_mid));
-      break;
-    }
-    ln_eval(self, current, node->nd_args->nd_head);
+    ln_eval(self, node->nd_args->nd_head, ary);
     break;
 
   case NODE_OP_ASGN2:
-    ln_eval(self, current, node->nd_recv);
-    rb_ary_push(current, ID2SYM(node->nd_next->nd_aid));
-
-    switch (node->nd_next->nd_mid) {
-    case 0:
-      rb_ary_push(current, ID2SYM(rb_intern("||")));
-      break;
-    case 1:
-      rb_ary_push(current, ID2SYM(rb_intern("&&")));
-      break;
-    default:
-      rb_ary_push(current, ID2SYM(node->nd_next->nd_mid));
-      break;
-    }
-
-    ln_eval(self, current, node->nd_value);
+    ln_eval(self, node->nd_recv, ary);
+    ln_eval(self, node->nd_value, ary);
     break;
 
   case NODE_OP_ASGN_AND:
   case NODE_OP_ASGN_OR:
-    ln_eval(self, current, node->nd_head);
-    ln_eval(self, current, node->nd_value);
+    ln_eval(self, node->nd_head, ary);
+    ln_eval(self, node->nd_value, ary);
     break;
 
   case NODE_MASGN:
-    ln_eval(self, current, node->nd_head);
+    ln_eval(self, node->nd_head, ary);
     if (node->nd_args) {
       if (node->nd_args != (NODE *)-1) {
-        ln_eval(self, current, node->nd_args);
-      } else {
-        rb_ary_push(current, wrap_into_node("splat", 0));
+        ln_eval(self, node->nd_args, ary);
       }
     }
-    ln_eval(self, current, node->nd_value);
+    ln_eval(self, node->nd_value, ary);
     break;
-#endif /*FINISHED*/
 
   case NODE_LASGN:
   case NODE_DASGN:
@@ -454,28 +409,31 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     ln_eval(self, node->nd_value, ary);
     break;
 
-#ifdef FINISHED
+  case NODE_LVAR:
+  case NODE_DVAR:
+  case NODE_GVAR:
+  case NODE_IVAR:
+  case NODE_CONST:
+  case NODE_CVAR:
+    break;
+    
   case NODE_COLON3:           /* u2    (::OUTER_CONST) */
-    rb_ary_push(current, ID2SYM(node->u2.id));
     break;
 
   case NODE_HASH:
     {
       NODE *list;
-
       list = node->nd_head;
       while (list) {
-        ln_eval(self, current, list->nd_head);
+        ln_eval(self, list->nd_head, ary);
         list = list->nd_next;
         if (list == 0)
           rb_bug("odd number list for Hash");
-        ln_eval(self, current, list->nd_head);
+        ln_eval(self, list->nd_head, ary);
         list = list->nd_next;
       }
     }
     break;
-
-#endif /*FINISHED*/
 
   case NODE_DSTR:
   case NODE_DSYM:
@@ -504,12 +462,14 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     break;
 
   case NODE_DEFN:
+    ln_eval(self, node->nd_defn, ary);
     break;
 
   case NODE_DEFS:
     if (node->nd_defn) {
       ln_eval(self, node->nd_recv, ary);
     }
+    ln_eval(self, node->nd_defn, ary);
     break;
 
   case NODE_UNDEF:            /* u2    (undef name, ...) */
@@ -522,26 +482,14 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
 #endif
     break;
 
-#ifdef FINISHED
   case NODE_ALIAS:            /* u1 u2 (alias :blah :blah2) */
-#if RUBY_VERSION_CODE < 185
-    rb_ary_push(current, wrap_into_node("lit", ID2SYM(node->u2.id)));
-    rb_ary_push(current, wrap_into_node("lit", ID2SYM(node->u1.id)));
-#else
-    ln_eval(self, current, node->nd_1st);
-    ln_eval(self, current, node->nd_2nd);
+#if RUBY_VERSION_CODE >= 185
+    ln_eval(self, node->nd_1st, ary);
+    ln_eval(self, node->nd_2nd, ary);
 #endif
     break;
   case NODE_VALIAS:           /* u1 u2 (alias $global $global2) */
-#if RUBY_VERSION_CODE < 185
-    rb_ary_push(current, ID2SYM(node->u2.id));
-    rb_ary_push(current, ID2SYM(node->u1.id));
-#else
-    rb_ary_push(current, ID2SYM(node->u1.id));
-    rb_ary_push(current, ID2SYM(node->u2.id));
-#endif
     break;
-#endif /*FINISHED*/
 
   case NODE_CLASS:
     if (node->nd_super) {
@@ -565,12 +513,6 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     }
   }  break;
 
-  case NODE_LVAR:
-  case NODE_DVAR:
-  case NODE_GVAR:
-  case NODE_IVAR:
-  case NODE_CONST:
-  case NODE_CVAR:
   case NODE_ATTRSET:
     break;
 
@@ -588,44 +530,22 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     node = node->nd_next;
     goto again;
 
-#ifdef FINISHED
   case NODE_NTH_REF:          /* u2 u3 ($1) - u3 is local_cnt('~') ignorable? */
-    rb_ary_push(current, INT2FIX(node->nd_nth));
     break;
 
   case NODE_BACK_REF:         /* u2 u3 ($& etc) */
-    {
-    char c = node->nd_nth;
-    rb_ary_push(current, rb_str_intern(rb_str_new(&c, 1)));
-    }
     break;
 
   case NODE_BLOCK_ARG:        /* u1 u3 (def x(&b) */
-    rb_ary_push(current, ID2SYM(node->u1.id));
     break;
 
   case NODE_COLON2:
-    ln_eval(self, current, node->nd_head);
-    rb_ary_push(current, ID2SYM(node->nd_mid));
+    ln_eval(self, node->nd_head, ary);
     break;
 
-  /* these nodes are empty and do not require extra work: */
-  case NODE_FALSE:
-  case NODE_NIL:
-  case NODE_SELF:
-  case NODE_TRUE:
+
   case NODE_ZARRAY:
-  case NODE_ATTRASGN:           /* literal.meth = y u1 u2 u3 */
-    /* node id node */
-    if (node->nd_1st == RNODE(1)) {
-      ln_eval(self, current, NEW_SELF());
-    } else {
-      ln_eval(self, current, node->nd_1st);
-    }
-    rb_ary_push(current, ID2SYM(node->u2.id));
-    ln_eval(self, current, node->nd_3rd);
     break;
-#endif /*FINISHED*/
 
   case NODE_ARRAY:
     {
@@ -643,11 +563,8 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     ln_eval(self, node->nd_2nd, ary);
     break;
 
-#ifdef FINISHED
   case NODE_CFUNC:
   case NODE_IFUNC:
-    rb_ary_push(current, INT2NUM((long)node->nd_cfnc));
-    rb_ary_push(current, INT2NUM(node->nd_argc));
     break;
 
 #if RUBY_VERSION_CODE >= 190
@@ -659,6 +576,34 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     break;
 #endif
 
+  case NODE_BMETHOD:
+    {
+      struct BLOCK *data;
+      Data_Get_Struct(node->nd_cval, struct BLOCK, data);
+      if (!(data->var == 0 || data->var == (NODE *)1 || 
+	    data->var == (NODE *)2)) {
+        ln_eval(self, data->var, ary);
+      }
+      ln_eval(self, data->body, ary);
+      break;
+    }
+    break;
+
+#if RUBY_VERSION_CODE < 190
+  case NODE_DMETHOD:
+    {
+      struct METHOD *data;
+      Data_Get_Struct(node->nd_cval, struct METHOD, data);
+      ln_eval(self, data->body, ary);
+      break;
+    }
+#endif
+
+  case NODE_METHOD:
+    ln_eval(self, node->nd_3rd, ary);
+    break;
+
+
   /* Nodes we found but have yet to decypher */
   /* I think these are all runtime only... not positive but... */
   case NODE_MEMO:               /* enum.c zip */
@@ -666,7 +611,7 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
   /* #defines: */
   /* case NODE_LMASK: */
   /* case NODE_LSHIFT: */
-#endif /*FINISHED*/
+
   default:
     rb_warn("Unhandled node %s", NODE2NAME[nd_type(node)]);
     if (RNODE(node)->u1.node != NULL) rb_warning("unhandled u1 value");
@@ -729,5 +674,6 @@ lnums_for_str(VALUE self, VALUE src) {
 void Init_trace_nums(void)
 {
     mTraceLineNumbers = rb_define_module("TraceLineNumbers");
-    rb_define_module_function(mTraceLineNumbers, "lnums_for_str", lnums_for_str, 1);
+    rb_define_module_function(mTraceLineNumbers, "lnums_for_str", 
+			      lnums_for_str, 1);
 }
