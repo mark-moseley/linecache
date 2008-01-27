@@ -97,7 +97,7 @@ char *NODE2NAME[] =
     "nil",
     "true",
     "false",
-    "defined",
+    "defined?",
     "newline (; or \\n)",
     "postexe",
     "alloca",

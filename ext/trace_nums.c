@@ -1,3 +1,26 @@
+/* 
+   This code creates module TraceLineNumbers with one method
+   lnums_for_str.  lnums_for_str returns an array lines for which
+   RUBY_EVENT_LINE can be called on. In other words, the line numbers
+   that can be traced (such as via Tracer) or stopped at in a
+   debugger (such as ruby-debug).
+
+   This code has been tested on Ruby 1.8.6; it does not work on Ruby
+   1.9.x.  The code was created via culling from two sources. 
+
+   Ruby 1.8's eval.c, and rb_eval() in particular, is the definitive
+   source of how the tree is evaluated. However we don't want to
+   actually evaluate the code, which simplifies things. In contrast
+   though we need lines for all branches, not just the ones that get
+   executed on a given run.  For example in an "if" node the "then"
+   part may or may not get executed, but we want to get the trace line
+   numbers for the "then" part regardless.
+
+   The legacy code in ParseTree is similar and necessarily more
+   complex. We would have used that were it not broken for our
+   purposes and were it not for the author's lack of interest in
+   extending it to handle what's needed here.
+*/
 #include <ruby.h>
 #include <version.h>
 #include <node.h>
@@ -277,7 +300,7 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     break;
 
   case NODE_RESCUE:
-    /* Follow ruby_parse.c and prey for the best. */
+    /* Follow ruby_parse.rb and pray for the best. */
     ln_eval(self, node->nd_1st, ary);
     ln_eval(self, node->nd_2nd, ary);
     ln_eval(self, node->nd_3rd, ary);
@@ -300,21 +323,6 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     /*** if (RTEST(rb_eval(self, node->nd_body))) result = Qfalse;
        else result = Qtrue; ***/
     ln_eval(self, node->nd_body, ary); 
-    break;
-
-  /*
-  // rescue body:
-  // begin stmt rescue exception => var; stmt; [rescue e2 => v2; s2;]* end
-  // stmt rescue stmt
-  // a = b rescue c
-  // NODE_RESBODY doesn't appear in 1.8.6's rb_eval
-  */
-  case NODE_RESBODY:
-      if (node->nd_3rd) {
-        ln_eval(self, node->nd_3rd, ary);
-      }
-      ln_eval(self, node->nd_2nd, ary);
-      ln_eval(self, node->nd_1st, ary);
     break;
 
   case NODE_DOT2:
@@ -415,7 +423,20 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
   case NODE_CVAR:
     break;
     
+  case NODE_BLOCK_ARG:        /* u1 u3 (def x(&b) */
+    break;
+
+  case NODE_COLON2:
+    ln_eval(self, node->nd_head, ary);
+    break;
+
   case NODE_COLON3:           /* u2    (::OUTER_CONST) */
+    break;
+
+  case NODE_NTH_REF:          /* u2 u3 ($1) - u3 is local_cnt('~') ignorable? */
+    break;
+
+  case NODE_BACK_REF:         /* u2 u3 ($& etc) */
     break;
 
   case NODE_HASH:
@@ -433,11 +454,30 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     }
     break;
 
+  case NODE_ZARRAY:
+    break;
+
+  case NODE_ARRAY:
+    {
+      long int i = node->nd_alen;
+      for (i=0; node; node=node->nd_next) {
+        ln_eval(self, node->nd_head, ary);
+      }
+    }
+    break;
+
+  case NODE_STR:              /* u1 */
+    break;
+
+  case NODE_EVSTR: /* eval of a string */
+    ln_eval(self, node->nd_2nd, ary);
+    break;
+
   case NODE_DSTR:
-  case NODE_DSYM:
   case NODE_DXSTR:
   case NODE_DREGX:
   case NODE_DREGX_ONCE:
+  case NODE_DSYM:
     {
       NODE *list = node->nd_next;
       while (list) {
@@ -457,6 +497,15 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
         list = list->nd_next;
       }
     }
+    break;
+
+  case NODE_XSTR:             /* u1    (%x{ls}) */
+    /* Issues rb_funcall(self, '`'...). So I think we have to 
+     register a call event. */
+    EVENT_CALL(node);
+    break;
+    
+  case NODE_LIT:
     break;
 
   case NODE_DEFN:
@@ -505,61 +554,14 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     ln_eval(self, node->nd_body, ary);
     break;
 
-  case NODE_ARGS: {
-    if (node->nd_opt) {
-      ln_eval(self, node->nd_opt, ary);
-    }
-  }  break;
-
-  case NODE_ATTRSET:
-    break;
-
-  case NODE_XSTR:             /* u1    (%x{ls}) */
-    /* Issues rb_funcall(self, '`'...). So I think we have to 
-     register a call event. */
-    EVENT_CALL(node);
-    break;
-    
-  case NODE_LIT:
+  case NODE_DEFINED:
+    ln_eval(self, node->nd_head, ary);
     break;
 
   case NODE_NEWLINE:
     EVENT_LINE(node);
     node = node->nd_next;
     goto again;
-
-  case NODE_NTH_REF:          /* u2 u3 ($1) - u3 is local_cnt('~') ignorable? */
-    break;
-
-  case NODE_BACK_REF:         /* u2 u3 ($& etc) */
-    break;
-
-  case NODE_BLOCK_ARG:        /* u1 u3 (def x(&b) */
-    break;
-
-  case NODE_COLON2:
-    ln_eval(self, node->nd_head, ary);
-    break;
-
-
-  case NODE_ZARRAY:
-    break;
-
-  case NODE_ARRAY:
-    {
-      long int i = node->nd_alen;
-      for (i=0; node; node=node->nd_next) {
-        ln_eval(self, node->nd_head, ary);
-      }
-    }
-    break;
-
-  case NODE_STR:              /* u1 */
-    break;
-
-  case NODE_EVSTR: /* eval of a string */
-    ln_eval(self, node->nd_2nd, ary);
-    break;
 
   case NODE_CFUNC:
   case NODE_IFUNC:
@@ -602,6 +604,30 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     break;
 
 
+  case NODE_ARGS: {
+    if (node->nd_opt) {
+      ln_eval(self, node->nd_opt, ary);
+    }
+  }  break;
+
+  case NODE_ATTRSET:
+    break;
+
+  /*
+  // rescue body:
+  // begin stmt rescue exception => var; stmt; [rescue e2 => v2; s2;]* end
+  // stmt rescue stmt
+  // a = b rescue c
+  // NODE_RESBODY doesn't appear in 1.8.6's rb_eval
+  */
+  case NODE_RESBODY:
+      if (node->nd_3rd) {
+        ln_eval(self, node->nd_3rd, ary);
+      }
+      ln_eval(self, node->nd_2nd, ary);
+      ln_eval(self, node->nd_1st, ary);
+    break;
+
   /* Nodes we found but have yet to decypher */
   /* I think these are all runtime only... not positive but... */
   case NODE_MEMO:               /* enum.c zip */
@@ -611,11 +637,13 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
   /* case NODE_LSHIFT: */
 
   default:
-    rb_warn("Unhandled node %s", NODE2NAME[nd_type(node)]);
+    rb_warn("Unhandled node '%s'", NODE2NAME[nd_type(node)]);
     if (RNODE(node)->u1.node != NULL) rb_warning("unhandled u1 value");
     if (RNODE(node)->u2.node != NULL) rb_warning("unhandled u2 value");
     if (RNODE(node)->u3.node != NULL) rb_warning("unhandled u3 value");
-    if (RTEST(ruby_debug)) fprintf(stderr, "u1 = %p u2 = %p u3 = %p\\n", (void*)node->nd_1st, (void*)node->nd_2nd, (void*)node->nd_3rd);
+    if (RTEST(ruby_debug)) 
+      fprintf(stderr, "u1 = %p u2 = %p u3 = %p\n", 
+	      (void*)node->nd_1st, (void*)node->nd_2nd, (void*)node->nd_3rd);
     break;
   }
   finish:
