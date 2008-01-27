@@ -1,4 +1,4 @@
 # [2, 3, 3]
-case "5"
+case "2"
 when Array, Fixnum
 end

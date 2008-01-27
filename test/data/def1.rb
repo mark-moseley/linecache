@@ -4,6 +4,6 @@ def
 def b 
 end
 def c(
-      a=1,
-      b=2)
+      a=7,
+      b=8)
 end

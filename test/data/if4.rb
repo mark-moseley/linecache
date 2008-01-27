@@ -5,9 +5,9 @@
 # != has been turned into == with the branches switched.
 [true, false].each do |t|
   if t != true
-    5
+    8
   else
-    6
+    10
   end
 end
   

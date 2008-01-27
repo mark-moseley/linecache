@@ -1,6 +1,6 @@
 # [ 4, 6 ]
 # not and lit
-6 
-not 5
+3 
+not 4
 not 
-  8
+  6

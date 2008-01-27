@@ -199,6 +199,7 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
 	ln_eval(self, tag->nd_head, ary);
 	tag = tag->nd_next;
       }
+      ln_eval(self, node->nd_body, ary);
       node = node->nd_next;
     }
     RETURN /***(Qnil)***/;

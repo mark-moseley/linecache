@@ -1,4 +1,4 @@
 # [ 2, 3 ]
-for i in [1] 
+for i in [2] 
   i
 end

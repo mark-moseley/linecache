@@ -2,7 +2,7 @@
 lines = ''
 opts = {:print_source => true}
 if opts[:print_source]
-    puts '=' * 1
+    puts 5
     puts lines
 end
   

@@ -1,5 +1,5 @@
 # [ 5, 3, 4 ]
 case 
-when 1 != 1
-when 2 != 2
+when 3 != 3
+when 4 != 4
 end
