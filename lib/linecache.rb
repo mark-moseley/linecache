@@ -266,13 +266,18 @@ module LineCache
   end
   module_function :stat
 
+  # Return an Array of breakpoints in filename.
+  # The list will contain an entry for each distinct line event call
+  # so it is possible (and possibly useful) for a line number appear more
+  # than once.
   def trace_line_numbers(filename, reload_on_change=false)
     fullname = cache(filename, reload_on_change)
     return nil unless fullname
     e = @@file_cache[filename]
     unless e.line_numbers
       e.line_numbers = 
-        Set.new(TraceLineNumbers.lnums_for_str_array(e.lines))
+        TraceLineNumbers.lnums_for_str_array(e.lines)
+      e.line_numbers = false unless e.line_numbers
     end
     e.line_numbers
   end

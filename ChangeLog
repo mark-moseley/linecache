@@ -1,3 +1,136 @@
+2008-01-27 11:24  rockyb
+
+	* ext/trace_nums.c, ext/trace_nums.h, test/data/if5.rb: Handle
+	  defined? node. Add "if" weirdness test.
+
+2008-01-27 04:26  rockyb
+
+	* test/data/case5.rb: Verify that the 'else' doesn't appear in a
+	  trace.
+
+2008-01-27 04:21  rockyb
+
+	* ext/trace_nums.c, test/data/block1.rb, test/data/block2.rb,
+	  test/data/case1.rb, test/data/case2.rb, test/data/case3.rb,
+	  test/data/case4.rb, test/data/case5.rb, test/data/def1.rb,
+	  test/data/each1.rb, test/data/for1.rb, test/data/if3.rb,
+	  test/data/if4.rb, test/data/match3.rb, test/data/match3a.rb,
+	  test/data/not-lit.rb: Was not showing blocks after when's.
+
+2008-01-27 04:03  rockyb
+
+	* ext/trace_nums.c, test/data/block1.rb, test/data/block2.rb,
+	  test/data/if4.rb, test/lnum-diag.rb: trace_nums.c, block1.c,
+	  block2.c: bug in handling blocks
+	  lnum-diag.rb: more graceful about not finding the source.
+	  if4.rb: note weirdness in the way comparison works.
+
+2008-01-27 02:11  rockyb
+
+	* ext/trace_nums.c, ext/trace_nums.h, test/data/case4.rb,
+	  test/data/def1.rb, test/data/if3.rb, test/lnum-diag.rb: Finish
+	  adding all tree nodes. Work on case nodes some more.
+	  lnum-diag.rb: add options to turn on and off various parts.
+
+2008-01-26 11:12  rockyb
+
+	* test/data/comments1.rb: Add comment test and situation where no
+	  lines traced.
+
+2008-01-26 11:08  rockyb
+
+	* ext/trace_nums.c, test/data/class1.rb: Add class, scope and
+	  module nodes.
+
+2008-01-26 10:18  rockyb
+
+	* ext/trace_nums.c, test/rcov-bug.rb, test/test-linecache.rb,
+	  test/test-tracelines.rb: Add more tree nodes.
+
+2008-01-26 02:09  rockyb
+
+	* test/data/each1.rb, test/data/for1.rb, test/data/if1.rb,
+	  test/data/if2.rb, test/test-lnum.rb: Add Debugger.init which
+	  intializes things that rdebug does. This
+	  allows a restart even though rdebug wasn't called initially.
+
+2008-01-25 03:50  rockyb
+
+	* ext/trace_nums.c: Some code cleanup.
+
+2008-01-25 02:50  rockyb
+
+	* ext/trace_nums.c, test/data/case1.rb, test/data/case2.rb,
+	  test/data/case3.rb, test/data/match3.rb, test/data/match3a.rb:
+	  Work over case, when and match3.
+
+2008-01-25 00:17  rockyb
+
+	* ext/trace_nums.c, test/data, test/lnum-data, test/lnum-diag.rb,
+	  test/test-lnum.rb, test/test-tracelines.rb: Trace just line
+	  numbers for now until we get a better handle on things.
+
+2008-01-24 13:36  rockyb
+
+	* test/lnum-diag.rb, test/rcov-bug.rb, test/test-linecache.rb,
+	  test/test-tracelines.rb: Need recursion in more places because of
+	  block continuation nodes.
+	  Add nodes needed so we don't complain about rcov-bug.rb:
+	  NODE_MATCH3, NODE_LASN, and NODE_STR (and those similar to that).
+
+2008-01-24 04:09  rockyb
+
+	* test/lnum-diag.rb: Fix bug if print_file == false
+
+2008-01-24 04:04  rockyb
+
+	* ext/trace_nums.c, test/lnum-data/begin3.rb,
+	  test/lnum-data/end.rb, test/lnum-data/match.rb,
+	  test/lnum-data/not-lit.rb, test/lnum-diag.rb: Add more
+	  operatiors. Go over existing ones and add more tests of them.
+
+2008-01-23 19:17  rockyb
+
+	* NEWS: What's up.
+
+2008-01-23 19:12  rockyb
+
+	* test/lnum-diag.rb: Don't assume we have expected line numbers.
+
+2008-01-23 19:05  rockyb
+
+	* test/lnum-diag.rb: A conversion-error bug.
+
+2008-01-23 19:04  rockyb
+
+	* test/lnum-diag.rb: variable name typo.
+
+2008-01-23 19:03  rockyb
+
+	* ext, ext/trace_nums.c, test/lnum-diag.rb, test/parse-show.rb:
+	  lnum-diag.rb and parse-show.rb - some diagnostic tools.
+
+2008-01-23 16:06  rockyb
+
+	* ChangeLog, ext/trace_nums.c: Show add_lines level, nicer
+	  formatting including \n for end.
+
+2008-01-23 15:32  rockyb
+
+	* test/test-lnum.rb: Generalized routine to test everything in
+	  lnum-data
+
+2008-01-23 12:07  rockyb
+
+	* Rakefile, ext, ext/extconf.rb, ext/trace_nums.c,
+	  ext/trace_nums.h, lib/linecache.rb, lib/tracelines.rb,
+	  test/lnum-data, test/lnum-data/begin1.rb,
+	  test/lnum-data/begin2.rb, test/lnum-data/begin3.rb,
+	  test/test-tracelines.rb: ParseTree is broken for our purposes.
+	  Having custom code for getting
+	  the trace line numbers is going remove a lot of headaches down
+	  the line.
+
 2008-01-20 21:37  rockyb
 
 	* Rakefile, lib/linecache.rb, test/test-linecache.rb: Add
