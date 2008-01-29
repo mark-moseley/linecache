@@ -136,9 +136,9 @@ class TestLineCache < Test::Unit::TestCase
 
   def test_trace_line_numbers
     test_file = File.join(@@TEST_DIR, 'short-file')
-    assert_equal(Set.new, LineCache::trace_line_numbers(test_file))
+    assert_equal([], LineCache::trace_line_numbers(test_file))
     test_file = File.join(@@TEST_DIR, 'rcov-bug.rb')
-    assert_equal(Set.new([3, 10]), LineCache::trace_line_numbers(test_file))
+    assert_equal([3, 10], LineCache::trace_line_numbers(test_file))
   end
 
   def test_sha1
