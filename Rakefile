@@ -5,6 +5,8 @@ require 'rake/gempackagetask'
 require 'rake/rdoctask'
 require 'rake/testtask'
 
+SO_NAME = "trace_nums.so"
+
 # ------- Default Package ----------
 PACKAGE_VERSION = open(File.join(File.dirname(__FILE__), 'VERSION')) do 
   |f| f.readlines[0].chomp
@@ -26,20 +28,27 @@ FILES = FileList[
 ]                        
 
 desc "Test everything."
-test_task = task :test => [:lib, :ext] do 
+test_task = task :test => :lib do 
   Rake::TestTask.new(:test) do |t|
-    t.libs << ['./lib', './ext']
     t.pattern = 'test/test-*.rb'
     t.verbose = true
   end
 end
+
+desc "Create the core ruby-debug shared library extension"
+task :lib do
+  Dir.chdir("ext") do
+    system("#{Gem.ruby} extconf.rb && make")
+  end
+end
+
 
 desc "Test everything - same as test."
 task :check => :test
 
 desc "Create a GNU-style ChangeLog via svn2cl"
 task :ChangeLog do
-  system("svn2cl")
+  system("svn2cl --authors=svn2cl_usermap")
 end
 
 # Base GEM Specification
@@ -77,11 +86,34 @@ end
 
 task :default => [:test]
 
+# Windows specification
+win_spec = default_spec.clone
+win_spec.extensions = []
+win_spec.platform = Gem::Platform::WIN32
+win_spec.files += ["lib/#{SO_NAME}"]
+
+desc "Create Windows Gem"
+task :win32_gem do
+  # Copy the win32 extension the top level directory.
+  current_dir = File.expand_path(File.dirname(__FILE__))
+  source = File.join(current_dir, "ext", "win32", SO_NAME)
+  target = File.join(current_dir, "lib", SO_NAME)
+  cp(source, target)
+
+  # Create the gem, then move it to pkg.
+  Gem::Builder.new(win_spec).build
+  gem_file = "#{win_spec.name}-#{win_spec.version}-#{win_spec.platform}.gem"
+  mv(gem_file, "pkg/#{gem_file}")
+
+  # Remove win extension from top level directory.
+  rm(target)
+end
+
 desc "Publish linecache to RubyForge."
 task :publish do 
   require 'rake/contrib/sshpublisher'
   
-  # Get ruby-debug path
+  # Get ruby-debug path.
   ruby_debug_path = File.expand_path(File.dirname(__FILE__))
 
   publisher = Rake::SshDirPublisher.new("rockyb@rubyforge.org",
@@ -89,7 +121,16 @@ task :publish do
 end
 
 desc "Remove built files"
-task :clean => [:clobber_package, :clobber_rdoc]
+task :clean => [:clobber_package, :clobber_rdoc] do
+  cd "ext" do
+    if File.exists?("Makefile")
+      sh "make clean"
+      rm  "Makefile"
+    end
+    derived_files = Dir.glob(".o") + Dir.glob("*.so")
+    rm derived_files unless derived_files.empty?
+  end
+end
 
 # ---------  RDoc Documentation ------
 desc "Generate rdoc documentation"

@@ -1,4 +1,4 @@
-/* 
+/*
    This code creates module TraceLineNumbers with one method
    lnums_for_str.  lnums_for_str returns an array lines for which
    RUBY_EVENT_LINE can be called on. In other words, the line numbers
@@ -6,20 +6,30 @@
    debugger (such as ruby-debug).
 
    This code has been tested on Ruby 1.8.6; it does not work on Ruby
-   1.9.x.  The code was created via culling from two sources. 
+   1.9.x.  The code was created via culling from various sources. 
 
    Ruby 1.8's eval.c, and rb_eval() in particular, is the definitive
    source of how the tree is evaluated. However we don't want to
-   actually evaluate the code, which simplifies things. In contrast
-   though we need lines for all branches, not just the ones that get
+   actually evaluate the code, which simplifies things. In contrast,
+   we need lines for all branches, and not just the ones that get
    executed on a given run.  For example in an "if" node the "then"
    part may or may not get executed, but we want to get the trace line
-   numbers for the "then" part regardless.
+   numbers for the "then" part regardless. 
 
-   The legacy code in ParseTree is similar and necessarily more
-   complex. We would have used that were it not broken for our
-   purposes and were it not for the author's lack of interest in
-   extending it to handle what's needed here.
+   Code enclosed in the ***'s contains code from eval.c which is
+   included for comparison.
+
+   Also parse.y from Ruby 1.8 can shed light on how the nodes get
+   created.
+
+   Some legacy code in ParseTree is similar and necessarily more
+   complex. We would have used that gem from the outside and lived
+   with the additional bloat were it not broken for our purposes and
+   were it not for the author's lack of interest in extending it to
+   handle what's needed here.
+
+   Finally, node_help.txt from nodewrap contains descriptions of many
+   of the node types.
 */
 #include <ruby.h>
 #include <version.h>
@@ -572,16 +582,17 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
   case NODE_VALUES:
   case NODE_PRELUDE:
   case NODE_LAMBDA:
-    rb_warn("no worky in 1.9 yet");
+    rb_warn("Ruby 1.9 is very different. You shouldn't have gotten here.");
     break;
 #endif
 
-  case NODE_BMETHOD:
+  case NODE_BMETHOD: /* define_method (or rb_mod_define_method) with a block */
     {
       struct BLOCK *data;
       Data_Get_Struct(node->nd_cval, struct BLOCK, data);
       if (!(data->var == 0 || data->var == (NODE *)1 || 
 	    data->var == (NODE *)2)) {
+	/* block doesn't have args. */
         ln_eval(self, data->var, ary);
       }
       ln_eval(self, data->body, ary);
