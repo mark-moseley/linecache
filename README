@@ -19,10 +19,13 @@
 
   This is a port of the module of the same name from the Python distribution.
 
+  The idea for how TraceLineNumbers works, and some code was taken
+  from ParseTree by Ryan Davis.
+
 == Other stuff
 
 Author::   Rocky Bernstein <rockyb@rubyforge.net>
-License::  Copyright (c) 2007 Rocky Bernstein
+License::  Copyright (c) 2007, 2008 Rocky Bernstein
            Released under the GNU GPL 2 license
 
 == Warranty
