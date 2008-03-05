@@ -8,9 +8,13 @@ require 'rake/testtask'
 SO_NAME = "trace_nums.so"
 
 # ------- Default Package ----------
-PACKAGE_VERSION = open(File.join(File.dirname(__FILE__), 'VERSION')) do 
+PKG_VERSION = open(File.join(File.dirname(__FILE__), 'VERSION')) do 
   |f| f.readlines[0].chomp
 end
+PKG_NAME           = 'linecache'
+PKG_FILE_NAME      = "#{PKG_NAME}-#{PKG_VERSION}"
+RUBY_FORGE_PROJECT = 'rocky-hacks'
+RUBY_FORGE_USER    = 'rockyb'
 
 FILES = FileList[
   'AUTHORS',
@@ -62,7 +66,7 @@ LineCache is a module for reading and caching lines. This may be useful for
 example in a debugger where the same lines are shown many times.
 EOF
 
-  spec.version = PACKAGE_VERSION
+  spec.version = PKG_VERSION
 
   spec.author = "R. Bernstein"
   spec.email = "rockyb@rubyforge.net"
@@ -147,3 +151,10 @@ Rake::RDocTask.new("rdoc") do |rdoc|
                           'COPYING')
 end
 
+desc "Publish the release files to RubyForge."
+task :rubyforge_upload do
+  `rubyforge login`
+  release_command = "rubyforge add_release #{PKG_NAME} #{PKG_NAME} '#{PKG_NAME}-#{PKG_VERSION}' pkg/#{PKG_NAME}-#{PKG_VERSION}.gem"
+  puts release_command
+  system(release_command)
+end
