@@ -53,7 +53,7 @@
 # Defining SCRIPT_LINES__ causes Ruby to cache the lines of files
 # it reads. The key the setting of __FILE__ at the time when Ruby does
 # its read. LineCache keeps a separate copy of the lines elsewhere
-# and never destroys __SCRIPT_LINES
+# and never destroys SCRIPT_LINES__
 SCRIPT_LINES__ = {} unless defined? SCRIPT_LINES__
 
 require 'digest/sha1'
