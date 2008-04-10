@@ -1,3 +1,13 @@
+2008-03-09 23:24  Rocky Bernstein
+
+	* ChangeLog, Rakefile, VERSION, lib/linecache.rb: Deal with
+	  Depricated win32.
+
+2008-03-05 02:01  Rocky Bernstein
+
+	* Rakefile: Add rubyforge_upload task -- code from
+	  ruby-memory-profiler.
+
 2008-03-04 22:47  Rocky Bernstein
 
 	* README: Ooops - forgot to credit Ryan Davis and ParseTree.

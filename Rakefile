@@ -28,6 +28,7 @@ FILES = FileList[
   'ext/extconf.rb',
   'lib/*.rb',
   'test/*.rb',
+  'test/data/*.rb',
   'test/short-file'
 ]                        
 
