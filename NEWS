@@ -1,3 +1,6 @@
+0.4
+- Credit Ryan Davis and ParseTree.
+
 0.3
 - Add tracelines: get line numbers that can be stopped at.
 
