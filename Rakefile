@@ -24,7 +24,8 @@ FILES = FileList[
   'README',
   'Rakefile',
   'VERSION',
-  'ext/trace_nums.*',
+  'ext/trace_nums.c',
+  'ext/trace_nums.h',
   'ext/extconf.rb',
   'lib/*.rb',
   'test/*.rb',
@@ -74,6 +75,7 @@ EOF
   spec.platform = Gem::Platform::RUBY
   spec.require_path = "lib"
   spec.files = FILES.to_a  
+  spec.extensions = ["ext/extconf.rb"]
 
   spec.required_ruby_version = '>= 1.8.2'
   spec.date = Time.now
@@ -82,6 +84,8 @@ EOF
   # rdoc
   spec.has_rdoc = true
   spec.extra_rdoc_files = ['README', 'lib/linecache.rb', 'lib/tracelines.rb']
+
+  spec.test_files = FileList['test/*.rb']
 end
 
 # Rake task to build the default package
