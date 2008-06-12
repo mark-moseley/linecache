@@ -1,3 +1,7 @@
+0.43
+06-12-08
+- tolerance for finding windows extension in lib rather than ext.
+
 0.41 
 - add test/data/* to gem.
 
