@@ -1,11 +1,16 @@
 #!/usr/bin/env ruby
 # $Id$
 begin require 'rubygems' rescue LoadError end
-# require 'ruby-debug' ; Debugger.start
+# require 'ruby-debug' ; Debugger.start(:post-mortem => true)
 
 module TraceLineNumbers
   @@SRC_DIR = File.expand_path(File.dirname(__FILE__))
-  require File.join(@@SRC_DIR, '..', 'ext', 'trace_nums')
+  begin
+    require File.join(@@SRC_DIR, '..', 'ext', 'trace_nums')
+  rescue LoadError
+    # MSWindows seems to put this in lib rather than ext.
+    require File.join(@@SRC_DIR, '..', 'lib', 'trace_nums')
+  end
 
   # Return an array of lines numbers that could be 
   # stopped at given a file name of a Ruby program.

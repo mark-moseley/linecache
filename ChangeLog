@@ -277,54 +277,41 @@
 
 2007-12-10 16:24  Rocky Bernstein
 
-	* linecache/linecache: release 0.1
+	* : release 0.1
 
 2007-12-09 17:47  Rocky Bernstein
 
-	* linecache/trunk/lib/linecache.rb: Make Ruby 1.9 compatible.
+	* : Make Ruby 1.9 compatible.
 
 2007-12-09 17:17  Rocky Bernstein
 
-	* linecache/trunk/ChangeLog, linecache/trunk/Rakefile,
-	  linecache/trunk/lib/linecache.rb,
-	  linecache/trunk/test/test-linecache.rb: Better tests mean more
-	  bugs found. "rake" defaults now to "test".
+	* : Better tests mean more bugs found. "rake" defaults now to
+	  "test".
 
 2007-12-09 14:10  Rocky Bernstein
 
-	* linecache/trunk/Rakefile: Add VERSION to gem.
+	* : Add VERSION to gem.
 
 2007-12-09 14:09  Rocky Bernstein
 
-	* linecache/trunk/test/test-linecache.rb: Change classname to
-	  something more appropriate.
+	* : Change classname to something more appropriate.
 
 2007-12-09 13:41  Rocky Bernstein
 
-	* linecache/trunk, linecache/trunk/Rakefile: . : ignore doc and pkg
+	* : . : ignore doc and pkg
 	  Rakefile: clean now does clobber_rdoc and clobber_package, i.e.
 	  removes
 	  the doc and pkg directories.
 
 2007-12-09 13:15  Rocky Bernstein
 
-	* linecache/trunk/ChangeLog, linecache/trunk/NEWS,
-	  linecache/trunk/README, linecache/trunk/Rakefile,
-	  linecache/trunk/lib/linecache.rb,
-	  linecache/trunk/test/test-linecache.rb: NEWS, README,
-	  linecache.rb: Add $Id$ line
+	* : NEWS, README, linecache.rb: Add $Id$ line
 	  test-linecache.rb: make executable
 	  Rakefile: Correct documentation
 
 2007-12-09 12:58  Rocky Bernstein
 
-	* linecache, linecache/trunk, linecache/trunk/AUTHORS,
-	  linecache/trunk/COPYING, linecache/trunk/ChangeLog,
-	  linecache/trunk/NEWS, linecache/trunk/README,
-	  linecache/trunk/Rakefile, linecache/trunk/VERSION,
-	  linecache/trunk/lib, linecache/trunk/lib/linecache.rb,
-	  linecache/trunk/test, linecache/trunk/test/test-linecache.rb:
-	  Initial import of LineCache, a module for reading and caching
+	* : Initial import of LineCache, a module for reading and caching
 	  lines.
 	  This time to trunk.
 
