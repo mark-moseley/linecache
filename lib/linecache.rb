@@ -22,16 +22,22 @@
 # Author::    Rocky Bernstein  (mailto:rockyb@rubyforge.net)
 #
 # = linecache
-# Module to read and cache lines of a file
+# A module to read and cache lines of a Ruby program. 
 # == Version
 # :include:VERSION
 
 # == SYNOPSIS
 #
 # The LineCache module allows one to get any line from any file,
-# caching lines of the file on first access to the file. The may be is
-# useful when a small random sets of lines are read from a single
-# file, in particular in a debugger to show source lines.
+# caching lines of the file on first access to the file. Although the 
+# file may be any file, the common use is when the file is a Ruby
+# script since parsing of the file is done to figure out where the
+# statement boundaries are.
+#
+# The routines here may be is useful when a small random sets of lines
+# are read from a single file, in particular in a debugger to show
+# source lines.
+#
 #
 #  require 'linecache'
 #  lines = LineCache::getlines('/tmp/myruby.rb')
@@ -64,7 +70,7 @@ require 'tracelines'
 # require 'ruby-debug' ; Debugger.start
 
 # = module LineCache
-# Module caching lines of a file
+# A module to read and cache lines of a Ruby program. 
 module LineCache
   LineCacheInfo = Struct.new(:stat, :line_numbers, :lines, :path, :sha1) unless
     defined?(LineCacheInfo)
