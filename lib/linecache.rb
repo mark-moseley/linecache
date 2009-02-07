@@ -110,7 +110,7 @@ module LineCache
 
   # Discard cache entries that are out of date. If +filename+ is +nil+
   # all entries in the file cache +@@file_cache+ are checked.
-  # If we don't have stat information about a file which can happen
+  # If we don't have stat information about a file, which can happen
   # if the file was read from __SCRIPT_LINES but no corresponding file
   # is found, it will be kept. Return a list of invalidated filenames.
   # nil is returned if a filename was given but not found cached.
