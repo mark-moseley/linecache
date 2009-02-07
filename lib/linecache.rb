@@ -178,16 +178,14 @@ module LineCache
 
   # Get line +line_number+ from file named +filename+. Return nil if
   # there was a problem. If a file named filename is not found, the
-  # function will look for it in the $: path array.
+  # function will look for it in the sys.path array.
   # 
   # Examples:
   # 
-  #  lines = LineCache::getline('/tmp/myfile.rb)
+  #  lines = LineCache::getline('/tmp/myfile.rb')
   #  # Same as above
   #  $: << '/tmp'
-  #  lines = Dir.chdir('/tmp') do 
-  #     lines = LineCache::getlines ('myfile.rb')
-  #  end
+  #  lines = LineCache.getlines ('myfile.rb')
   #
   def getline(filename, line_number, reload_on_change=true)
     filename = unmap_file(filename)
