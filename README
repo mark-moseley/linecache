@@ -1,10 +1,10 @@
-= LineCache - A module to read and cache lines of a Ruby program. 
+= LineCache - A module to read and cache file information of a Ruby program.
 
 == SYNOPSIS
 
-The LineCache module allows one to get any line from any file,
-caching lines of the file on first access to the file. Although the 
-file may be any file, the common use is when the file is a Ruby
+The LineCache module allows one to get any line from any file, caching
+the lines and file information on first access to the file. Although
+the file may be any file, the common use is when the file is a Ruby
 script since parsing of the file is done to figure out where the
 statement boundaries are.
 
