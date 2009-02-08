@@ -129,7 +129,7 @@ module LineCache
       next unless @@file_cache.member?(filename)
       path = @@file_cache[filename].path
       if File.exist?(path)
-        cache_info = @@file_cache[filename]
+        cache_info = @@file_cache[filename].stat
         stat = File.stat(path)
         if stat && 
             (cache_info.size != stat.size or cache_info.mtime != stat.mtime)
@@ -178,14 +178,14 @@ module LineCache
 
   # Get line +line_number+ from file named +filename+. Return nil if
   # there was a problem. If a file named filename is not found, the
-  # function will look for it in the sys.path array.
+  # function will look for it in the $: array.
   # 
   # Examples:
   # 
   #  lines = LineCache::getline('/tmp/myfile.rb')
   #  # Same as above
   #  $: << '/tmp'
-  #  lines = LineCache.getlines ('myfile.rb')
+  #  lines = LineCache.getlines('myfile.rb')
   #
   def getline(filename, line_number, reload_on_change=true)
     filename = unmap_file(filename)
