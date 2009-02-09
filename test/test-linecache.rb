@@ -127,7 +127,7 @@ class TestLineCache < Test::Unit::TestCase
 
   def test_path
     assert_equal(nil, LineCache::path(__FILE__),
-                 "path for #{__FILE__} shouldn't be nil - just cleared cache.")
+                 "path for #{__FILE__} should be nil - just cleared cache.")
     path = LineCache::cache(__FILE__)
     assert path
     assert_equal(path, LineCache::path(__FILE__),
