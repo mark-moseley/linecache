@@ -1,9 +1,6 @@
 require "mkmf"
 
-if RUBY_VERSION >= "1.9"
-  STDERR.print("Can't handle 1.9.x yet\n")
-  exit(1)
-elsif RUBY_VERSION >= "1.8"
+if RUBY_VERSION >= "1.8"
   if RUBY_RELEASE_DATE < "2005-03-22"
     STDERR.print("Ruby version is too old\n")
     exit(1)
@@ -13,4 +10,14 @@ else
   exit(1)
 end
 
-create_makefile("trace_nums")
+dir_config("ruby")
+if have_header("node.h") and have_header("version.h") and 
+  have_macro("RUBY_VERSION_MAJOR", "version.h") then
+
+  create_makefile("trace_nums")
+else
+
+  STDERR.print("Makefile creation failed\n")
+  STDERR.print("try using option --with-ruby-include=<dir with node.h>\n")
+  exit(1)
+end

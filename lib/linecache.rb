@@ -166,7 +166,13 @@ module LineCache
   module_function :cached?
 
   def cached_script?(filename)
-    SCRIPT_LINES__.member?(unmap_file(filename))
+    # In 1.8.6, the SCRIPT_DIR__ filename key can be unqualified
+    # In 1.9.1 it's the fully qualified name
+    if RUBY_VERSION == "1.8.6"
+      SCRIPT_LINES__.member?(unmap_file(filename))
+    else
+      SCRIPT_LINES__.member?(File.expand_path(unmap_file(filename)))
+    end
   end
   module_function :cached_script?
       

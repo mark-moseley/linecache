@@ -1,4 +1,47 @@
 /*
+Ruby 1.9 version: (7/20/2009, Mark Moseley, mark@fast-software.com)
+
+   Now works with Ruby-1.9.1. Tested with p129 and p243.
+   Old code remains and is #ifdef'd around.
+
+   This does not (and can not) function identically to the 1.8 version. 
+   Line numbers are ordered differently. But ruby-debug doesn't seem 
+   to mind the difference.
+
+   Also, 1.9 does not number lines with a "begin" statement.
+
+   All this 1.9 version does is compile into bytecode, disassemble it
+   using rb_iseq_disasm(), and parse the text output. This isn't a
+   great solution; it will break if the disassembly format changes.
+   Walking the iseq tree and decoding each instruction is pretty hairy,
+   though, so until I have a really compelling reason to go that route, 
+   I'll leave it at this.
+
+   My first stab at this walked the nodes, like before, but there's no
+   NODE_NEWLINE node types any more. So I just output all line numbers
+   that came in, regardless of the node type, and then sorted it and
+   removed dups. The problem with that approach is that Ruby 1.9 is not
+   consistently sending the debugger hook RUBY_EVENT_LINE messages for
+   all lines. In particular:
+
+   1: def foo
+   2:   a = 5
+   3:   return a
+   4: end
+
+   The disassembly of this code doesn't have a RUBY_EVENT_LINE trace 
+   message for line 3; it has it only for lines 1 and 2. Oddly, if you
+   remove the "return", leaving just "a" on line 3, then you'll get the 
+   trace message.
+
+   So the advantage of this approach is that ruby-debug won't let you
+   set a breakpoint on lines that don't get the trace message. I think
+   it would be more confusing to be allowed to set a breakpoint, and
+   never break when the line does get hit, than to be prevented to set
+   the breakpoint in the first place even when you should be able to.
+
+Ruby 1.8 version:
+
    This code creates module TraceLineNumbers with one method
    lnums_for_str.  lnums_for_str returns an array lines for which
    RUBY_EVENT_LINE can be called on. In other words, the line numbers
@@ -33,15 +76,36 @@
 */
 #include <ruby.h>
 #include <version.h>
+#if RUBY_VERSION_MAJOR == 1 && RUBY_VERSION_MINOR == 8
+#define RUBY_VERSION_1_8
 #include <node.h>
-#include <env.h>
 #include <rubysig.h>
+#else
+#include <vm_core.h>
+#endif
 #include "trace_nums.h"
 
 VALUE mTraceLineNumbers;
-extern NODE *ruby_eval_tree_begin;
+
+#ifdef RUBY_VERSION_1_8
+RUBY_EXTERN NODE *ruby_eval_tree_begin;
+RUBY_EXTERN int ruby_in_eval;
 
 #define nd_3rd   u3.node
+
+extern struct FRAME {
+    VALUE self;
+    int argc;
+    ID last_func;
+    ID orig_func;
+    VALUE last_class;
+    struct FRAME *prev;
+    struct FRAME *tmp;
+    struct RNode *node;
+    int iter;
+    int flags;
+    unsigned long uniq;
+} *ruby_frame;
 
 struct METHOD {
   VALUE klass, rklass;
@@ -72,6 +136,7 @@ struct BLOCK {
   struct BLOCK *outer;
   struct BLOCK *prev;
 };
+#endif /* RUBY_VERSION_1_8 */
 
 #define RETURN					\
   goto finish
@@ -87,8 +152,9 @@ struct BLOCK {
 #endif
 
 /* Used just in debugging. */
-static indent_level = 0;
+static int indent_level = 0;
 
+#ifdef RUBY_VERSION_1_8
 static
 void ln_eval(VALUE self, NODE * n, VALUE ary) {
   NODE * volatile contnode = 0;
@@ -671,17 +737,32 @@ void ln_eval(VALUE self, NODE * n, VALUE ary) {
     }
 
 } /* ln_eval */
+#endif /* RUBY_VERSION_1_8 */
 
 /* Return a list of trace hook line numbers for the string in Ruby source src*/
 static VALUE 
 lnums_for_str(VALUE self, VALUE src) {
   VALUE result = rb_ary_new(); /* The returned array of line numbers. */
+#ifdef RUBY_VERSION_1_8
   NODE *node = NULL;
   int critical;
+#else
+  int len;
+  char *token;
+  char *disasm;
+  rb_thread_t *th;
+  VALUE iseqval;
+  VALUE disasm_val;
+#endif
 
-  ruby_nerrs = 0;
   StringValue(src); /* Check that src is a string. */
 
+  if (RTEST(ruby_debug)) {
+    indent_level = 0;
+  }
+
+#ifdef RUBY_VERSION_1_8
+  ruby_nerrs = 0;
   critical = rb_thread_critical;
   rb_thread_critical = Qtrue;
 
@@ -695,16 +776,59 @@ lnums_for_str(VALUE self, VALUE src) {
 
   if (ruby_nerrs > 0) {
     ruby_nerrs = 0;
-#if RUBY_VERSION_CODE < 190
     ruby_eval_tree_begin = 0;
-#endif
     rb_exc_raise(ruby_errinfo);
   }
 
-  if (RTEST(ruby_debug)) {
-    indent_level = 0;
-  }
   ln_eval(self, node, result);
+
+#else
+  th = GET_THREAD();
+
+  /* First compile to bytecode, using the method in eval_string_with_cref() in vm_eval.c */
+  th->parse_in_eval++;
+  th->mild_compile_error++;
+  iseqval = rb_iseq_compile(src, rb_str_new_cstr("(numbers_for_str)"), INT2FIX(1));
+  th->mild_compile_error--;
+  th->parse_in_eval--;
+
+  /* Disassemble the bytecode into text and parse into lines */
+  disasm_val = rb_iseq_disasm(iseqval);
+  if (disasm_val == Qnil)
+    return(result);
+
+  disasm = (char*)malloc(strlen(RSTRING_PTR(disasm_val))+1);
+  strcpy(disasm, RSTRING_PTR(disasm_val));
+
+  for (token = strtok(disasm, "\n"); token != NULL; token = strtok(NULL, "\n")) {
+
+    /* look only for lines tracing RUBY_EVENT_LINE (1) */
+    if (strstr(token, "trace            1 ") == NULL)
+      continue;
+    len = strlen(token) - 1;
+    if (token[len] != ')') 
+      continue;
+    len--;
+    if ((token[len] == '(') || (token[len] == ' '))
+      continue;
+      
+    for (; len > 0; len--) {
+      if (token[len] == ' ') 
+        continue;
+      if ((token[len] >= '0') && (token[len] <= '9')) 
+        continue;
+      if (token[len] == '(')
+        rb_ary_push(result, INT2NUM(atoi(token + len + 1))); /* trace found */
+
+      break;
+    }
+
+  }
+
+  free(disasm);
+
+#endif
+
   return result;
 }
 
