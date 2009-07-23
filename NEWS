@@ -1,3 +1,6 @@
+0.5 (7/23/09)
+- updated for Ruby 1.9
+
 0.43
 06-12-08
 - tolerance for finding windows extension in lib rather than ext.
