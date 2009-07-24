@@ -2,12 +2,12 @@
 
 Gem::Specification.new do |s|
   s.name = %q{linecache}
-  s.version = "0.5"
+  s.version = "0.5.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["R. Bernstein"]
   s.date = %q{2009-07-23}
-  s.description = %q{Columnize is a module for reading and caching lines. This may be useful for
+  s.description = %q{Linecache is a module for reading and caching lines. This may be useful for
 example in a debugger where the same lines are shown many times.
 }
   s.email = %q{rockyb@rubyforge.net}
@@ -44,6 +44,7 @@ example in a debugger where the same lines are shown many times.
     "test/test-linecache.rb",
     "test/test-tracelines.rb"
     ]
+  s.extensions << "ext/extconf.rb"
 
   if s.respond_to? :specification_version then
     current_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION

@@ -1,7 +1,7 @@
 /* Order is in C enum order. The below is correct for Ruby 1.8.6.
    Possibly others, but there may need some adjustment here.
   */
-char *NODE2NAME[] = 
+const char *NODE2NAME[] = 
   {
     "method",
     "fbody",
