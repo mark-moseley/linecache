@@ -111,7 +111,7 @@ module LineCache
   # Discard cache entries that are out of date. If +filename+ is +nil+
   # all entries in the file cache +@@file_cache+ are checked.
   # If we don't have stat information about a file, which can happen
-  # if the file was read from __SCRIPT_LINES but no corresponding file
+  # if the file was read from SCRIPT_LINES__ but no corresponding file
   # is found, it will be kept. Return a list of invalidated filenames.
   # nil is returned if a filename was given but not found cached.
   def checkcache(filename=nil, use_script_lines=false)
@@ -166,9 +166,9 @@ module LineCache
   module_function :cached?
 
   def cached_script?(filename)
-    # In 1.8.6, the SCRIPT_DIR__ filename key can be unqualified
+    # In 1.8.6, the SCRIPT_LINES__ filename key can be unqualified
     # In 1.9.1 it's the fully qualified name
-    if RUBY_VERSION == "1.8.6"
+    if RUBY_VERSION < "1.9"
       SCRIPT_LINES__.member?(unmap_file(filename))
     else
       SCRIPT_LINES__.member?(File.expand_path(unmap_file(filename)))

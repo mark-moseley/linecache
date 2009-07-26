@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{linecache}
-  s.version = "0.5.1"
+  s.version = "0.5.2"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["R. Bernstein"]
@@ -17,7 +17,7 @@ example in a debugger where the same lines are shown many times.
      "lib/tracelines.rb"
   ]
   s.files = [
-    "AUTHORS",
+     "AUTHORS",
      "COPYING",
      "ChangeLog",
      "NEWS",
@@ -29,10 +29,11 @@ example in a debugger where the same lines are shown many times.
      "ext/trace_nums.h",
      "lib/linecache.rb",
      "lib/tracelines.rb",
-     "test/short-file"
+     "test/short-file",
+     "test/lnum-diag.rb",
+     "test/parse-show.rb",
+     "test/rcov-bug.rb"
   ]
-  s.files += Dir.glob("test/*.rb")
-  s.files += Dir.glob("test/data/*.rb")
   s.homepage = %q{http://rubyforge.org/projects/rocky-hacks/linecache}
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_paths = ["lib"]
