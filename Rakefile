@@ -4,6 +4,9 @@ require 'rubygems'
 require 'rake/gempackagetask'
 require 'rake/rdoctask'
 require 'rake/testtask'
+require 'rake/extensiontask'
+
+Rake::ExtensionTask.new('trace_nums')
 
 SO_NAME = "trace_nums.so"
 
