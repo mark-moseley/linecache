@@ -18,6 +18,9 @@ if have_header("node.h") and have_header("version.h") and
 else
 
   STDERR.print("Makefile creation failed\n")
-  STDERR.print("try using option --with-ruby-include=<dir with node.h>\n")
+  STDERR.print("*************************************************************\n\n")
+  STDERR.print("  NOTE: For Ruby 1.9 installation instructions, please see:\n\n")
+  STDERR.print("     http://wiki.github.com/mark-moseley/ruby-debug\n\n")
+  STDERR.print("*************************************************************\n\n")
   exit(1)
 end
