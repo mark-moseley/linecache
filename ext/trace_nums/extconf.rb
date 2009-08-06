@@ -11,7 +11,7 @@ else
 end
 
 dir_config("ruby")
-if have_header("node.h") and have_header("version.h") and 
+if have_header("vm_core.h") and have_header("version.h") and 
   have_macro("RUBY_VERSION_MAJOR", "version.h") then
 
   create_makefile("trace_nums")
