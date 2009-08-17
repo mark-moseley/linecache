@@ -12,20 +12,25 @@ else
 end
 
 dir_config("ruby")
-with_cppflags("-I" + Ruby_core_source::get_ruby_core_source) {
+if have_header("vm_core.h") and have_header("version.h") and 
+  have_macro("RUBY_VERSION_MAJOR", "version.h") then
 
-  if have_header("vm_core.h") and have_header("version.h") and 
-    have_macro("RUBY_VERSION_MAJOR", "version.h") then
+  create_makefile("trace_nums")
+else
+  with_cppflags("-I" + Ruby_core_source::get_ruby_core_source) {
 
-    create_makefile("trace_nums")
-  else
+    if have_header("vm_core.h") and have_header("version.h") and 
+      have_macro("RUBY_VERSION_MAJOR", "version.h") then
 
-    STDERR.print("Makefile creation failed\n")
-    STDERR.print("*************************************************************\n\n")
-    STDERR.print("  NOTE: For Ruby 1.9 installation instructions, please see:\n\n")
-    STDERR.print("     http://wiki.github.com/mark-moseley/ruby-debug\n\n")
-    STDERR.print("*************************************************************\n\n")
-    exit(1)
-  end
+      create_makefile("trace_nums")
+    else
 
-}
+      STDERR.print("Makefile creation failed\n")
+      STDERR.print("*************************************************************\n\n")
+      STDERR.print("  NOTE: For Ruby 1.9 installation instructions, please see:\n\n")
+      STDERR.print("     http://wiki.github.com/mark-moseley/ruby-debug\n\n")
+      STDERR.print("*************************************************************\n\n")
+      exit(1)
+    end
+  }
+end  
