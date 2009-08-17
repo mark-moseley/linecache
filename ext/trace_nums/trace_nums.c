@@ -832,7 +832,7 @@ lnums_for_str(VALUE self, VALUE src) {
   return result;
 }
 
-void Init_trace_nums(void)
+void Init_trace_nums19(void)
 {
     mTraceLineNumbers = rb_define_module("TraceLineNumbers");
     rb_define_module_function(mTraceLineNumbers, "lnums_for_str", 

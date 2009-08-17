@@ -15,14 +15,14 @@ dir_config("ruby")
 if have_header("vm_core.h") and have_header("version.h") and 
   have_macro("RUBY_VERSION_MAJOR", "version.h") then
 
-  create_makefile("trace_nums")
+  create_makefile("trace_nums19")
 else
   with_cppflags("-I" + Ruby_core_source::get_ruby_core_source) {
 
     if have_header("vm_core.h") and have_header("version.h") and 
       have_macro("RUBY_VERSION_MAJOR", "version.h") then
 
-      create_makefile("trace_nums")
+      create_makefile("trace_nums19")
     else
 
       STDERR.print("Makefile creation failed\n")

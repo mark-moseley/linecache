@@ -6,10 +6,10 @@ begin require 'rubygems' rescue LoadError end
 module TraceLineNumbers
   @@SRC_DIR = File.expand_path(File.dirname(__FILE__))
   begin
-    require File.join(@@SRC_DIR, '..', 'ext', 'trace_nums')
+    require File.join(@@SRC_DIR, '..', 'ext\trace_nums', 'trace_nums19')
   rescue LoadError
     # MSWindows seems to put this in lib rather than ext.
-    require File.join(@@SRC_DIR, '..', 'lib', 'trace_nums')
+    require File.join(@@SRC_DIR, '..', 'lib', 'trace_nums19')
   end
 
   # Return an array of lines numbers that could be 

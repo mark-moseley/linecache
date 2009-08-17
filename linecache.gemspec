@@ -2,11 +2,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{linecache}
-  s.version = "0.5.7"
+  s.version = "0.5.8"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["R. Bernstein"]
-  s.date = %q{2009-08-15}
+  s.date = %q{2009-08-17}
   s.description = %q{Linecache is a module for reading and caching lines. This may be useful for
 example in a debugger where the same lines are shown many times.
 }
