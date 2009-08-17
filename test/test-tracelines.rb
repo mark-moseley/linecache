@@ -13,7 +13,7 @@ class TestLineNumbers1 < Test::Unit::TestCase
 
   @@TEST_DIR = File.expand_path(File.dirname(__FILE__))
   @@TOP_SRC_DIR = File.join(@@TEST_DIR, '..', 'lib')
-  require File.join(@@TOP_SRC_DIR, 'tracelines.rb')
+  require File.join(@@TOP_SRC_DIR, 'tracelines19.rb')
 
   @@rcov_file = File.join(@@TEST_DIR, 'rcov-bug.rb')
   File.open(@@rcov_file, 'r') {|fp|

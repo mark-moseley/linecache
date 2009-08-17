@@ -5,7 +5,7 @@
 
 TEST_DIR = File.expand_path(File.dirname(__FILE__))
 TOP_SRC_DIR = File.join(TEST_DIR, '..')
-require File.join(TOP_SRC_DIR, 'lib', 'tracelines.rb')
+require File.join(TOP_SRC_DIR, 'lib', 'tracelines19.rb')
 
 def dump_file(file, opts)
   puts file

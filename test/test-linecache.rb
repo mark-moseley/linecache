@@ -11,7 +11,7 @@ require 'set'
 class TestLineCache < Test::Unit::TestCase
   @@TEST_DIR = File.expand_path(File.dirname(__FILE__))
   @@TOP_SRC_DIR = File.join(@@TEST_DIR, '..', 'lib')
-  require File.join(@@TOP_SRC_DIR, 'linecache.rb')
+  require File.join(@@TOP_SRC_DIR, 'linecache19.rb')
   
   def setup
     LineCache::clear_file_cache

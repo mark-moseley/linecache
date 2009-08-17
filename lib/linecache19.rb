@@ -39,7 +39,7 @@
 # source lines.
 #
 #
-#  require 'linecache'
+#  require 'linecache19'
 #  lines = LineCache::getlines('/tmp/myruby.rb')
 #  # The following lines have same effect as the above.
 #  $: << '/tmp'
@@ -66,7 +66,7 @@ require 'digest/sha1'
 require 'set'
 
 begin require 'rubygems' rescue LoadError end
-require 'tracelines'
+require 'tracelines19'
 # require 'ruby-debug' ; Debugger.start
 
 # = module LineCache
