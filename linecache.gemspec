@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{linecache}
-  s.version = "0.5.9"
+  s.version = "0.5.10"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["R. Bernstein"]
@@ -46,7 +46,7 @@ example in a debugger where the same lines are shown many times.
     "test/test-tracelines.rb"
     ]
   s.extensions << "ext/trace_nums/extconf.rb"
-  s.add_dependency("mark-moseley-ruby_core_source", ">= 0.1.2")
+  s.add_dependency("mark-moseley-ruby_core_source", ">= 0.1.4")
 
   if s.respond_to? :specification_version then
     current_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION
