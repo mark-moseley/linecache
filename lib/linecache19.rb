@@ -333,6 +333,9 @@ module LineCache
             stat = nil
           end
           lines = SCRIPT_LINES__[name]
+          if "ruby19".respond_to?(:force_encoding)
+            lines.each{|l| l.force_encoding(Encoding.default_external) }
+          end
           @@file_cache[filename] = LineCacheInfo.new(stat, nil, lines, path, nil)
           @@file2file_remap[path] = filename
           return true
