@@ -2,11 +2,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{linecache19}
-  s.version = "0.5.11"
+  s.version = "0.5.12"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["R. Bernstein", "Mark Moseley"]
-  s.date = %q{2009-08-24}
+  s.date = %q{2011-04-02}
   s.description = %q{Linecache is a module for reading and caching lines. This may be useful for
 example in a debugger where the same lines are shown many times.
 }
@@ -37,7 +37,7 @@ example in a debugger where the same lines are shown many times.
   s.homepage = %q{http://rubyforge.org/projects/ruby-debug19}
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_paths = ["lib"]
-  s.required_ruby_version = Gem::Requirement.new(">= 1.8.2")
+  s.required_ruby_version = Gem::Requirement.new(">= 1.9.2")
   s.rubyforge_project = %q{ruby-debug19}
   s.rubygems_version = %q{1.3.4}
   s.summary = %q{Read file with caching}
