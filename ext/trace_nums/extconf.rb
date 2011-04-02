@@ -12,8 +12,7 @@ else
 end
 
 hdrs = proc {
-  have_header("vm_core.h") and have_header("version.h") and 
-  have_macro("RUBY_VERSION_MAJOR", "version.h")
+  have_header("vm_core.h") and have_header("version.h")
 }
 
 dir_config("ruby")
