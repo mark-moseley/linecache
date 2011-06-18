@@ -47,6 +47,7 @@ example in a debugger where the same lines are shown many times.
     ]
   s.extensions << "ext/trace_nums/extconf.rb"
   s.add_dependency("ruby_core_source", ">= 0.1.4")
+  s.add_dependency "require_relative"
 
   if s.respond_to? :specification_version then
     current_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION
