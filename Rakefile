@@ -80,7 +80,7 @@ EOF
   spec.files = FILES.to_a  
   spec.extensions = ["ext/extconf.rb"]
 
-  spec.add_dependency "require_relative"
+  spec.add_dependency "require_relative", ">= 1.0.2"
 
   spec.required_ruby_version = '>= 1.8.2'
   spec.date = Time.now
